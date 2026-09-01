@@ -159,8 +159,11 @@ class RenderSettingsScope:
             'file_format': render.image_settings.file_format,
             'color_mode': render.image_settings.color_mode,
             'color_depth': render.image_settings.color_depth,
-            'use_nodes': self.scene.use_nodes,
+            'use_compositing': render.use_compositing,
             'camera': self.scene.camera,
+            'resolution_x': render.resolution_x,
+            'resolution_y': render.resolution_y,
+            'resolution_percentage': render.resolution_percentage,
         }
         return self
 
@@ -172,6 +175,9 @@ class RenderSettingsScope:
         render.image_settings.file_format = self.saved['file_format']
         render.image_settings.color_mode = self.saved['color_mode']
         render.image_settings.color_depth = self.saved['color_depth']
-        self.scene.use_nodes = self.saved['use_nodes']
+        render.use_compositing = self.saved['use_compositing']
         self.scene.camera = self.saved['camera']
+        render.resolution_x = self.saved['resolution_x']
+        render.resolution_y = self.saved['resolution_y']
+        render.resolution_percentage = self.saved['resolution_percentage']
         return False

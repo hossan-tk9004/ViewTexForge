@@ -2,7 +2,7 @@ import os
 import bpy
 from .camera_utils import create_auto_cameras, create_viewport_camera, prepare_specified_camera
 from .metadata import write_camera_json
-from .render_utils import render_clay_viewport, render_normal_pass, render_depth_pass
+from .render_utils import render_clay_viewport, render_normal_pass, render_depth_pass, render_mask_pass
 from .utils import (
     DummyContext,
     RenderSettingsScope,
@@ -17,14 +17,14 @@ from .utils import (
 class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
     bl_idname = "viewtexforge.capture"
     bl_label = "Capture Images"
-    bl_description = "Capture clay / normal / depth images"
+    bl_description = "Capture clay / normal / depth / mask images"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
         settings = context.scene.viewtexforge_settings
         scene = context.scene
 
-        if not (settings.output_clay or settings.output_normal or settings.output_depth):
+        if not (settings.output_clay or settings.output_normal or settings.output_depth or settings.output_mask):
             self.report({'ERROR'}, "Please enable at least one output image type.")
             return {'CANCELLED'}
 
@@ -60,6 +60,11 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
 
             with context_manager:
                 with RenderSettingsScope(scene):
+                    size = int(settings.render_size_preset)
+                    scene.render.resolution_x = size
+                    scene.render.resolution_y = size
+                    scene.render.resolution_percentage = 100
+
                     for label, cam_obj, depth_near, depth_far in camera_infos:
                         label_dir = os.path.join(output_dir, label)
                         ensure_dir(label_dir)
@@ -70,6 +75,8 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
                             render_normal_pass(scene, cam_obj, os.path.join(label_dir, 'normal.png'))
                         if settings.output_depth:
                             render_depth_pass(scene, cam_obj, os.path.join(label_dir, 'depth.png'), depth_near, depth_far)
+                        if settings.output_mask:
+                            render_mask_pass(scene, cam_obj, os.path.join(label_dir, 'mask.png'))
 
                         write_camera_json(
                             os.path.join(label_dir, 'camera.json'),

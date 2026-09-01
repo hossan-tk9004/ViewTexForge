@@ -32,12 +32,14 @@ def write_camera_json(output_path, scene, cam_obj, depth_near, depth_far, target
         "scene_name": scene.name,
         "target_mode": settings.target_mode,
         "camera_mode": settings.camera_mode,
+        "output_size_preset": settings.render_size_preset,
         "target_objects": [obj.name for obj in target_objects],
         "depth_normalize_near": float(depth_near),
         "depth_normalize_far": float(depth_far),
         "normal_encoding": "world_normal * 0.5 + 0.5",
         "depth_encoding": "near=1.0, far=0.0",
         "clay_encoding": "viewport_solid_matcap",
+        "mask_encoding": "foreground_alpha_mask white=object black=background",
     }
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)
