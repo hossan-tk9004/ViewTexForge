@@ -177,6 +177,77 @@ def _add_normal_remap_nodes(tree, normal_socket):
     return combine.outputs[0]
 
 
+
+# -----------------------------------------------------------------------------
+# Lit clay helpers
+# -----------------------------------------------------------------------------
+
+def _create_clay_override_material():
+    mat = bpy.data.materials.new(name='__ViewTexForgeClayOverride__')
+    mat.use_nodes = True
+    nodes = mat.node_tree.nodes
+    links = mat.node_tree.links
+
+    for node in list(nodes):
+        nodes.remove(node)
+
+    output = nodes.new('ShaderNodeOutputMaterial')
+    output.location = (240, 0)
+
+    shader = nodes.new('ShaderNodeBsdfPrincipled')
+    shader.location = (0, 0)
+    shader.inputs['Base Color'].default_value = (0.8, 0.8, 0.8, 1.0)
+    shader.inputs['Roughness'].default_value = 0.65
+    try:
+        shader.inputs['Specular IOR Level'].default_value = 0.2
+    except Exception:
+        pass
+
+    links.new(shader.outputs['BSDF'], output.inputs['Surface'])
+    return mat
+
+
+def render_clay_lit(scene, cam_obj, output_path, settings):
+    ensure_dir(os.path.dirname(output_path))
+    scene.camera = cam_obj
+    _set_compatible_eevee_engine(scene)
+
+    render = scene.render
+    view_layer = scene.view_layers[0]
+    old_material_override = view_layer.material_override
+    old_filepath = render.filepath
+    old_file_format = render.image_settings.file_format
+    old_color_mode = render.image_settings.color_mode
+    old_color_depth = render.image_settings.color_depth
+    old_use_compositing = render.use_compositing
+
+    clay_material = _create_clay_override_material()
+
+    try:
+        view_layer.material_override = clay_material
+        render.filepath = output_path
+        render.image_settings.file_format = 'PNG'
+        render.image_settings.color_mode = 'RGB'
+        render.image_settings.color_depth = '8'
+        render.use_compositing = False
+
+        bpy.ops.render.render(
+            write_still=True,
+            use_viewport=False,
+            scene=scene.name,
+        )
+    finally:
+        view_layer.material_override = old_material_override
+        render.filepath = old_filepath
+        render.image_settings.file_format = old_file_format
+        render.image_settings.color_mode = old_color_mode
+        render.image_settings.color_depth = old_color_depth
+        render.use_compositing = old_use_compositing
+
+        if clay_material is not None and clay_material.users == 0:
+            bpy.data.materials.remove(clay_material)
+
+
 # -----------------------------------------------------------------------------
 # MatCap clay capture
 # -----------------------------------------------------------------------------

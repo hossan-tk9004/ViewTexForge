@@ -2,7 +2,8 @@ import os
 import bpy
 from .camera_utils import create_auto_cameras, create_viewport_camera, prepare_specified_camera
 from .metadata import write_camera_json
-from .render_utils import render_clay_viewport, render_normal_pass, render_depth_pass, render_mask_pass
+from .lighting_utils import AutoLightingScope
+from .render_utils import render_clay_viewport, render_clay_lit, render_normal_pass, render_depth_pass, render_mask_pass
 from .utils import (
     DummyContext,
     RenderSettingsScope,
@@ -40,54 +41,65 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
         specified_camera_restore = None
 
         try:
-            if settings.camera_mode == 'AUTO4':
-                camera_infos = create_auto_cameras(context, target_objects)
-                created_temp_cameras = [info[1] for info in camera_infos]
-            elif settings.camera_mode == 'VIEWPORT':
-                camera_infos = create_viewport_camera(context, target_objects)
-                created_temp_cameras = [info[1] for info in camera_infos]
-            else:
-                camera_infos, specified_camera_restore = prepare_specified_camera(
-                    context,
-                    settings.specified_camera,
-                    target_objects,
-                )
+            # Camera fitting must see the FINAL output aspect ratio. Previously
+            # cameras were fitted before this, so a 16:9 scene setting could
+            # make a square capture far too loose.
+            with RenderSettingsScope(scene):
+                size = int(settings.render_size_preset)
+                scene.render.resolution_x = size
+                scene.render.resolution_y = size
+                scene.render.resolution_percentage = 100
 
-            force_view_layer_update(context)
+                if settings.camera_mode == 'AUTO4':
+                    camera_infos = create_auto_cameras(context, target_objects)
+                    created_temp_cameras = [info[1] for info in camera_infos]
+                elif settings.camera_mode == 'VIEWPORT':
+                    camera_infos = create_viewport_camera(context, target_objects)
+                    created_temp_cameras = [info[1] for info in camera_infos]
+                else:
+                    camera_infos, specified_camera_restore = prepare_specified_camera(
+                        context,
+                        settings.specified_camera,
+                        target_objects,
+                    )
 
-            visibility_scope = VisibilityScope(scene, target_objects) if settings.target_mode == 'SELECTED_ONLY' else None
-            context_manager = visibility_scope if visibility_scope else DummyContext()
+                force_view_layer_update(context)
 
-            with context_manager:
-                with RenderSettingsScope(scene):
-                    size = int(settings.render_size_preset)
-                    scene.render.resolution_x = size
-                    scene.render.resolution_y = size
-                    scene.render.resolution_percentage = 100
+                visibility_scope = VisibilityScope(scene, target_objects) if settings.target_mode == 'SELECTED_ONLY' else None
+                context_manager = visibility_scope if visibility_scope else DummyContext()
 
-                    for label, cam_obj, depth_near, depth_far in camera_infos:
-                        label_dir = os.path.join(output_dir, label)
-                        ensure_dir(label_dir)
+                lighting_scope = DummyContext()
+                if settings.output_clay and settings.clay_render_mode == 'LIT' and settings.lighting_mode == 'AUTO':
+                    lighting_scope = AutoLightingScope(context, target_objects, settings)
 
-                        if settings.output_clay:
-                            render_clay_viewport(scene, cam_obj, os.path.join(label_dir, 'clay.png'))
-                        if settings.output_normal:
-                            render_normal_pass(scene, cam_obj, os.path.join(label_dir, 'normal.png'))
-                        if settings.output_depth:
-                            render_depth_pass(scene, cam_obj, os.path.join(label_dir, 'depth.png'), depth_near, depth_far)
-                        if settings.output_mask:
-                            render_mask_pass(scene, cam_obj, os.path.join(label_dir, 'mask.png'))
+                with context_manager:
+                    with lighting_scope:
+                        for label, cam_obj, depth_near, depth_far in camera_infos:
+                            label_dir = os.path.join(output_dir, label)
+                            ensure_dir(label_dir)
 
-                        write_camera_json(
-                            os.path.join(label_dir, 'camera.json'),
-                            scene,
-                            cam_obj,
-                            depth_near,
-                            depth_far,
-                            target_objects,
-                            settings,
-                            label,
-                        )
+                            if settings.output_clay:
+                                if settings.clay_render_mode == 'SOLID':
+                                    render_clay_viewport(scene, cam_obj, os.path.join(label_dir, 'clay.png'))
+                                else:
+                                    render_clay_lit(scene, cam_obj, os.path.join(label_dir, 'clay.png'), settings)
+                            if settings.output_normal:
+                                render_normal_pass(scene, cam_obj, os.path.join(label_dir, 'normal.png'))
+                            if settings.output_depth:
+                                render_depth_pass(scene, cam_obj, os.path.join(label_dir, 'depth.png'), depth_near, depth_far)
+                            if settings.output_mask:
+                                render_mask_pass(scene, cam_obj, os.path.join(label_dir, 'mask.png'))
+
+                            write_camera_json(
+                                os.path.join(label_dir, 'camera.json'),
+                                scene,
+                                cam_obj,
+                                depth_near,
+                                depth_far,
+                                target_objects,
+                                settings,
+                                label,
+                            )
 
             self.report({'INFO'}, f"Capture complete: {output_dir}")
             return {'FINISHED'}

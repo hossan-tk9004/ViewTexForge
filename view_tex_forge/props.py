@@ -1,5 +1,5 @@
 import bpy
-from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty
+from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty, FloatProperty, FloatVectorProperty
 from .preview import preview_settings_update
 
 
@@ -37,6 +37,113 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         name="Mask",
         description="Output foreground mask image",
         default=True,
+    )
+
+    clay_render_mode: EnumProperty(
+        name="Clay Render Mode",
+        items=[
+            ('SOLID', 'Solid Viewport', 'Output a Solid viewport clay image using MatCap'),
+            ('LIT', 'Lit Clay Render', 'Output a gray clay render with lighting enabled'),
+        ],
+        default='SOLID',
+    )
+
+    lighting_mode: EnumProperty(
+        name="Lighting Mode",
+        items=[
+            ('EXISTING', 'Use Existing Lighting', 'Use the current scene lighting'),
+            ('AUTO', 'Use Auto Lighting', 'Use an automatically generated 5-area-light rig'),
+        ],
+        default='EXISTING',
+    )
+
+    show_lighting_options: BoolProperty(
+        name="Lighting Options",
+        default=False,
+    )
+
+    light_power: FloatProperty(
+        name="Light Power",
+        description="Base power used for each auto-generated area light",
+        default=1000.0,
+        min=0.0,
+        soft_max=100000.0,
+    )
+
+    light_exposure_front: FloatProperty(
+        name="Front Exposure",
+        description="Exposure used for the front auto light",
+        default=6.0,
+        soft_min=-10.0,
+        soft_max=16.0,
+    )
+
+    light_exposure_back: FloatProperty(
+        name="Back Exposure",
+        description="Exposure used for the back auto light",
+        default=6.0,
+        soft_min=-10.0,
+        soft_max=16.0,
+    )
+
+    light_exposure_left: FloatProperty(
+        name="Left Exposure",
+        description="Exposure used for the left auto light",
+        default=6.0,
+        soft_min=-10.0,
+        soft_max=16.0,
+    )
+
+    light_exposure_right: FloatProperty(
+        name="Right Exposure",
+        description="Exposure used for the right auto light",
+        default=6.0,
+        soft_min=-10.0,
+        soft_max=16.0,
+    )
+
+    light_exposure_top: FloatProperty(
+        name="Top Exposure",
+        description="Exposure used for the top auto light",
+        default=8.0,
+        soft_min=-10.0,
+        soft_max=16.0,
+    )
+
+    light_normalize: BoolProperty(
+        name="Normalize",
+        description="Enable Normalize for each auto-generated area light",
+        default=True,
+    )
+
+    light_use_shadow: BoolProperty(
+        name="Cast Shadow",
+        description="Enable shadow casting for each auto-generated area light",
+        default=False,
+    )
+
+    light_color: FloatVectorProperty(
+        name="Light Color",
+        description="Color used for auto-generated lights",
+        subtype='COLOR',
+        size=3,
+        min=0.0,
+        max=1.0,
+        default=(1.0, 1.0, 1.0),
+    )
+
+    keep_auto_lights_debug: BoolProperty(
+        name="Keep Auto Lights (Debug)",
+        description="Keep the generated auto lights in the scene after capture for inspection",
+        default=False,
+    )
+
+    camera_fit_margin: FloatProperty(
+        name="Camera Margin",
+        description="Framing margin for Auto 4 Cameras. Smaller values frame tighter.",
+        default=1.05,
+        min=1.0,
+        soft_max=1.5,
     )
 
     render_size_preset: EnumProperty(

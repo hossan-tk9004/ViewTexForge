@@ -38,8 +38,25 @@ def write_camera_json(output_path, scene, cam_obj, depth_near, depth_far, target
         "depth_normalize_far": float(depth_far),
         "normal_encoding": "world_normal * 0.5 + 0.5",
         "depth_encoding": "near=1.0, far=0.0",
+        "depth_space": "CAMERA_Z",
         "clay_encoding": "viewport_solid_matcap",
         "mask_encoding": "foreground_alpha_mask white=object black=background",
+        "clay_render_mode": settings.clay_render_mode,
+        "lighting_mode": settings.lighting_mode,
+        "auto_light_shape": "SQUARE",
+        "auto_light_layout": "cube_based_on_longest_bbox_axis",
+        "auto_light_power": float(settings.light_power),
+        "auto_light_normalize": bool(settings.light_normalize),
+        "auto_light_use_shadow": bool(settings.light_use_shadow),
+        "keep_auto_lights_debug": bool(settings.keep_auto_lights_debug),
+        "light_exposure_front": float(settings.light_exposure_front),
+        "light_exposure_back": float(settings.light_exposure_back),
+        "light_exposure_left": float(settings.light_exposure_left),
+        "light_exposure_right": float(settings.light_exposure_right),
+        "light_exposure_top": float(settings.light_exposure_top),
+        "light_color": [float(v) for v in settings.light_color],
+        "camera_fit_mode": "cube_based_on_longest_bbox_axis_with_margin" if settings.camera_mode == "AUTO4" else "preserve_view_framing",
+        "camera_fit_margin": float(settings.camera_fit_margin) if settings.camera_mode == "AUTO4" else None
     }
     with open(output_path, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4, ensure_ascii=False)

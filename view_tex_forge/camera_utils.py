@@ -11,7 +11,7 @@ from .utils import (
 
 
 def look_at(cam_obj, target):
-    direction = (target - cam_obj.location)
+    direction = target - cam_obj.location
     if direction.length == 0:
         return
     quat = direction.to_track_quat('-Z', 'Y')
@@ -28,6 +28,15 @@ def find_view3d_context():
                         space = area.spaces.active
                         return window, screen, area, region, space
     return None, None, None, None, None
+
+
+def _get_cube_bounds(world_points):
+    center, size, _min_v, _max_v = get_bbox_center_and_size(world_points)
+    cube_size = max(size.x, size.y, size.z, 0.001)
+    half = cube_size * 0.5
+    cube_min = center - Vector((half, half, half))
+    cube_max = center + Vector((half, half, half))
+    return center, cube_size, cube_min, cube_max
 
 
 def fit_camera_clipping_and_depth(scene, cam_obj, world_points):
@@ -64,31 +73,34 @@ def fit_camera_clipping_and_depth(scene, cam_obj, world_points):
     return min_depth, max_depth, cam_points, depths
 
 
-def fit_ortho_camera_to_points(scene, cam_obj, world_points):
+def fit_auto_ortho_camera(scene, cam_obj, world_points, margin_multiplier):
+    """Fit an Auto4 orthographic camera to the longest-axis cube."""
     force_view_layer_update()
-    min_depth, max_depth, cam_points, depths = fit_camera_clipping_and_depth(scene, cam_obj, world_points)
-    xs = [p.x for p in cam_points]
-    ys = [p.y for p in cam_points]
-    width = max(xs) - min(xs)
-    height = max(ys) - min(ys)
+    min_depth, max_depth, _cam_points, _depths = fit_camera_clipping_and_depth(
+        scene, cam_obj, world_points
+    )
 
-    aspect = get_render_aspect(scene)
-    ortho_scale = max(width, height * aspect) * CAPTURE_MARGIN
-    if ortho_scale <= 0:
-        ortho_scale = 1.0
-    cam_obj.data.ortho_scale = ortho_scale
+    _center, cube_size, _cube_min, _cube_max = _get_cube_bounds(world_points)
+    aspect = max(get_render_aspect(scene), 1e-8)
+    margin = max(1.0, float(margin_multiplier))
+
+    # Blender's ortho_scale is the vertical span. Horizontal span is
+    # ortho_scale * aspect, so portrait output needs extra vertical scale;
+    # landscape/square output does not.
+    aspect_fit = max(1.0, 1.0 / aspect)
+    cam_obj.data.ortho_scale = max(cube_size * aspect_fit * margin, 0.001)
     return min_depth, max_depth
 
 
 def create_auto_cameras(context, target_objects):
     scene = context.scene
+    settings = scene.viewtexforge_settings
     world_points = get_bbox_world_points(context, target_objects)
     if not world_points:
         raise RuntimeError("No valid target bounds found.")
 
-    center, size, _, _ = get_bbox_center_and_size(world_points)
-    radius = max(size.length * 0.5, 1.0)
-    distance = radius * 2.5
+    center, cube_size, _cube_min, _cube_max = _get_cube_bounds(world_points)
+    distance = max(cube_size * 1.5, 1.0)
 
     coll = ensure_camera_collection(scene)
     cameras = []
@@ -107,7 +119,12 @@ def create_auto_cameras(context, target_objects):
         cam_obj.location = center + (direction * distance)
         look_at(cam_obj, center)
         force_view_layer_update(context)
-        depth_near, depth_far = fit_ortho_camera_to_points(scene, cam_obj, world_points)
+        depth_near, depth_far = fit_auto_ortho_camera(
+            scene,
+            cam_obj,
+            world_points,
+            settings.camera_fit_margin,
+        )
         cameras.append((label, cam_obj, depth_near, depth_far))
 
     return cameras
@@ -129,6 +146,7 @@ def create_viewport_camera(context, target_objects):
 
     if region_3d.view_perspective == 'ORTHO':
         cam_data.type = 'ORTHO'
+        # Preserve the user's viewport framing. Camera Margin is Auto4-only.
         cam_data.ortho_scale = max(region_3d.view_distance * 2.0, 1.0)
     else:
         cam_data.type = 'PERSP'
@@ -138,9 +156,6 @@ def create_viewport_camera(context, target_objects):
 
     world_points = get_bbox_world_points(context, target_objects)
     near, far, _, _ = fit_camera_clipping_and_depth(scene, cam_obj, world_points)
-    if cam_data.type == 'ORTHO':
-        fit_ortho_camera_to_points(scene, cam_obj, world_points)
-
     return [('Viewport', cam_obj, near, far)]
 
 
@@ -157,8 +172,6 @@ def prepare_specified_camera(context, camera_obj, target_objects):
         'ortho_scale': camera_obj.data.ortho_scale if camera_obj.data.type == 'ORTHO' else None,
     }
 
+    # Preserve the explicitly authored camera framing. Only clipping is adjusted.
     near, far, _, _ = fit_camera_clipping_and_depth(scene, camera_obj, world_points)
-    if camera_obj.data.type == 'ORTHO':
-        fit_ortho_camera_to_points(scene, camera_obj, world_points)
-
     return [('Specified', camera_obj, near, far)], original
