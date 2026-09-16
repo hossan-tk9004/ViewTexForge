@@ -89,3 +89,22 @@ Version 0.1.13
 Version 0.1.14
 - Added depth_space metadata to camera.json.
 - depth_space is written as CAMERA_Z, matching the camera-space -Z depth convention used for depth near/far normalization.
+
+Version 0.2.0
+- Camera JSON upgraded to format_version 2 for Standalone Texture Merge v1.
+- Added one capture_id shared by all views from a single Capture Images operation.
+- Added ORTHO projection_matrix using the final render resolution/aspect.
+- Added Raw CAMERA_Z depth export as depth_raw.exr (OpenEXR, 32-bit float).
+- Added geometry_mask.png from the same validity test used to gate Raw CAMERA_Z.
+- Added EVALUATED_RENDER Geometry Digest captured from a RENDER dependency graph.
+- Geometry Digest hashes evaluated vertex positions, triangles, corner UVs, matrix_world, and meters_per_world_unit.
+- Existing clay.png / normal.png / normalized depth.png / mask.png outputs remain available for ComfyUI workflows.
+- Registration and Texture Merge itself are intentionally not implemented in ViewTexForge.
+
+Version 0.2.1
+- Raw CAMERA_Z is generated in METERS from the same EVALUATED_RENDER triangle set used for Geometry Mask.
+- Geometry Mask and Raw Depth no longer use Render Layers Position/Alpha and do not depend on material alpha or AA.
+- RENDER-evaluated camera matrix_world and projection_matrix are the canonical camera values.
+- Geometry Digest serialization now follows VTFGEOM1_LE_F64_U64 exactly.
+- Camera JSON v2 now records coordinate_system, matrix_convention, image_origin, and pixel_center_offset.
+- texture_merge_v1_compatible remains false unless the v1 contract checks all pass.

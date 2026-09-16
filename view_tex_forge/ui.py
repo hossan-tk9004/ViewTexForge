@@ -12,7 +12,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.1.14")
+        layout.label(text="Version 0.2.1")
         layout.separator()
 
         box = layout.box()
@@ -68,6 +68,11 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
             box.prop(settings, 'preview_mode')
             if settings.preview_mode:
                 box.label(text='Overlay shows final output frame', icon='INFO')
+
+        contract_box = layout.box()
+        contract_box.label(text="Texture Merge Contract")
+        contract_box.label(text="Camera JSON v2 / EVALUATED_RENDER", icon='CHECKMARK')
+        contract_box.label(text="Raw CAMERA_Z EXR + Geometry Mask")
 
         box = layout.box()
         box.label(text="Save")

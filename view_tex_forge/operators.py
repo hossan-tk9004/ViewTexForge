@@ -1,9 +1,19 @@
 import os
+import uuid
+
 import bpy
+
 from .camera_utils import create_auto_cameras, create_viewport_camera, prepare_specified_camera
 from .metadata import write_camera_json
 from .lighting_utils import AutoLightingScope
-from .render_utils import render_clay_viewport, render_clay_lit, render_normal_pass, render_depth_pass, render_mask_pass
+from .render_utils import (
+    render_clay_viewport,
+    render_clay_lit,
+    render_normal_pass,
+    render_depth_pass,
+    render_mask_pass,
+)
+from .contract_raster import render_texture_merge_contract_pass
 from .utils import (
     DummyContext,
     RenderSettingsScope,
@@ -15,10 +25,23 @@ from .utils import (
 )
 
 
+def _geometry_fingerprint(contract_info):
+    if not contract_info or contract_info.get("error"):
+        return None
+    items = []
+    for target in contract_info.get("targets") or []:
+        digest = (target.get("geometry_digest") or {}).get("value")
+        object_id = target.get("object_id")
+        if not digest or not object_id:
+            return None
+        items.append((object_id, digest))
+    return tuple(sorted(items))
+
+
 class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
     bl_idname = "viewtexforge.capture"
     bl_label = "Capture Images"
-    bl_description = "Capture clay / normal / depth / mask images"
+    bl_description = "Capture AI texture images and Standalone Texture Merge v1 contract data"
     bl_options = {'REGISTER', 'UNDO'}
 
     def execute(self, context):
@@ -26,7 +49,7 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
         scene = context.scene
 
         if not (settings.output_clay or settings.output_normal or settings.output_depth or settings.output_mask):
-            self.report({'ERROR'}, "Please enable at least one output image type.")
+            self.report({'ERROR'}, "Please enable at least one legacy output image type.")
             return {'CANCELLED'}
 
         output_dir = bpy.path.abspath(settings.output_dir)
@@ -37,13 +60,13 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
             self.report({'ERROR'}, "No valid target objects found for the current mode.")
             return {'CANCELLED'}
 
+        capture_id = str(uuid.uuid4())
         created_temp_cameras = []
         specified_camera_restore = None
+        pending_views = []
+        contract_warnings = []
 
         try:
-            # Camera fitting must see the FINAL output aspect ratio. Previously
-            # cameras were fitted before this, so a 16:9 scene setting could
-            # make a square capture far too loose.
             with RenderSettingsScope(scene):
                 size = int(settings.render_size_preset)
                 scene.render.resolution_x = size
@@ -90,18 +113,56 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
                             if settings.output_mask:
                                 render_mask_pass(scene, cam_obj, os.path.join(label_dir, 'mask.png'))
 
-                            write_camera_json(
-                                os.path.join(label_dir, 'camera.json'),
-                                scene,
-                                cam_obj,
-                                depth_near,
-                                depth_far,
-                                target_objects,
-                                settings,
-                                label,
-                            )
+                            try:
+                                contract_info = render_texture_merge_contract_pass(
+                                    scene,
+                                    cam_obj,
+                                    os.path.join(label_dir, 'depth_raw.exr'),
+                                    os.path.join(label_dir, 'geometry_mask.png'),
+                                    target_objects,
+                                )
+                            except Exception as exc:
+                                contract_info = {"error": str(exc)}
+                                contract_warnings.append(f"{label}: {exc}")
 
-            self.report({'INFO'}, f"Capture complete: {output_dir}")
+                            pending_views.append({
+                                "label": label,
+                                "label_dir": label_dir,
+                                "contract_info": contract_info,
+                            })
+
+                fingerprints = [_geometry_fingerprint(item["contract_info"]) for item in pending_views]
+                geometry_camera_independent = (
+                    len(fingerprints) > 0
+                    and all(fp is not None for fp in fingerprints)
+                    and len(set(fingerprints)) == 1
+                )
+
+                for item in pending_views:
+                    compatible, errors = write_camera_json(
+                        os.path.join(item["label_dir"], 'camera.json'),
+                        scene,
+                        settings,
+                        item["label"],
+                        capture_id,
+                        item["contract_info"],
+                        geometry_camera_independent,
+                    )
+                    if not compatible:
+                        contract_warnings.append(
+                            f"{item['label']}: " + "; ".join(errors)
+                        )
+
+            if contract_warnings:
+                self.report(
+                    {'WARNING'},
+                    "Capture completed, but Texture Merge v1 compatibility is false for one or more views. "
+                    "See camera.json contract_error and Blender Console.",
+                )
+                for warning in contract_warnings:
+                    print(f"[ViewTexForge] Texture Merge contract warning: {warning}")
+            else:
+                self.report({'INFO'}, f"Capture complete: {output_dir}")
             return {'FINISHED'}
 
         except Exception as e:

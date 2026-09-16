@@ -1,5 +1,6 @@
 import os
 import bpy
+from mathutils import Vector
 
 from .constants import CLAY_VIEWPORT_COLOR, MATCAP_NAME
 from .camera_utils import find_view3d_context
@@ -109,17 +110,25 @@ def _create_file_output(
     color_mode,
     color_depth,
     save_as_render=False,
+    file_format='PNG',
+    exr_codec='ZIP',
 ):
-    """Create a Blender 5.1 File Output node configured for PNG."""
+    """Create a Blender 5.1 File Output node."""
     node = tree.nodes.new('CompositorNodeOutputFile')
     node.directory = directory
     node.file_name = file_name
 
-    # Blender 5.1 File Output API.
     node.format.media_type = 'IMAGE'
-    node.format.file_format = 'PNG'
-    node.format.color_mode = color_mode
+    node.format.file_format = file_format
+    try:
+        node.format.color_mode = color_mode
+    except (TypeError, ValueError):
+        # Some format/build combinations restrict BW. RGB is a safe fallback
+        # for a FLOAT socket and preserves the scalar value.
+        node.format.color_mode = 'RGB'
     node.format.color_depth = color_depth
+    if file_format == 'OPEN_EXR' and hasattr(node.format, 'exr_codec'):
+        node.format.exr_codec = exr_codec
 
     node.file_output_items.clear()
     item = node.file_output_items.new(socket_type, 'Image')
@@ -128,10 +137,12 @@ def _create_file_output(
 
 
 def _rename_file_output(base_dir, slot_prefix, final_name):
+    extension = os.path.splitext(final_name)[1].lower()
     candidates = sorted(
         fname
         for fname in os.listdir(base_dir)
-        if fname.startswith(slot_prefix) and fname.lower().endswith('.png')
+        if fname.startswith(slot_prefix)
+        and (not extension or fname.lower().endswith(extension))
     )
 
     if not candidates:
