@@ -1,6 +1,27 @@
 import bpy
-from bpy.props import BoolProperty, EnumProperty, PointerProperty, StringProperty, FloatProperty, FloatVectorProperty
+from bpy.props import (
+    BoolProperty, EnumProperty, PointerProperty, StringProperty, FloatProperty,
+    FloatVectorProperty, IntProperty,
+)
 from .preview import preview_settings_update
+
+
+
+def comfyui_server_url_update(self, context):
+    try:
+        from .comfyui_client import request_connection_check
+        self.comfyui_connection_status = 'UNKNOWN'
+        self.comfyui_connection_error = ''
+        request_connection_check()
+    except Exception:
+        pass
+
+
+
+def comfyui_workflow_update(self, context):
+    self.comfyui_workflow_status = 'UNKNOWN'
+    self.comfyui_workflow_error = ''
+    self.comfyui_workflow_signature = ''
 
 
 def camera_poll(self, obj):
@@ -187,3 +208,137 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         subtype='DIR_PATH',
         default="//ai_texture_capture",
     )
+
+    comfyui_server_url: StringProperty(
+        name="Server URL",
+        description="Base URL of the ComfyUI server",
+        default="http://127.0.0.1:8188",
+        update=comfyui_server_url_update,
+    )
+
+    comfyui_connection_status: EnumProperty(
+        name="Connection Status",
+        items=[
+            ('UNKNOWN', 'Unknown', 'Connection has not been checked yet'),
+            ('CHECKING', 'Checking', 'Checking ComfyUI connection'),
+            ('CONNECTED', 'Connected', 'Connected to ComfyUI'),
+            ('FAILED', 'Connection Failed', 'Could not connect to ComfyUI'),
+        ],
+        default='UNKNOWN',
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_connection_error: StringProperty(
+        name="Connection Error",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_workflow_mode: EnumProperty(
+        name="Workflow",
+        items=[
+            ('BUILTIN', 'Built-in', 'Use the ViewTexForge bundled ComfyUI workflow'),
+            ('CUSTOM', 'Custom', 'Use a custom API-format workflow JSON'),
+        ],
+        default='BUILTIN',
+        update=comfyui_workflow_update,
+    )
+
+    comfyui_workflow_path: StringProperty(
+        name="Custom Workflow JSON",
+        description="Optional custom ComfyUI API-format workflow JSON",
+        subtype='FILE_PATH',
+        default="",
+        update=comfyui_workflow_update,
+    )
+
+    comfyui_workflow_status: EnumProperty(
+        name="Workflow Status",
+        items=[
+            ('UNKNOWN', 'Unknown', 'Workflow has not been validated yet'),
+            ('CHECKING', 'Checking', 'Validating workflow contract'),
+            ('VALID', 'Valid', 'Workflow contract is valid'),
+            ('ERROR', 'Workflow Error', 'Workflow contract validation failed'),
+        ],
+        default='UNKNOWN',
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_workflow_error: StringProperty(
+        name="Workflow Error",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_workflow_signature: StringProperty(
+        name="Workflow Signature",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_reference_image: StringProperty(
+        name="Reference Image",
+        description="Single reference image shared by all camera views",
+        subtype='FILE_PATH',
+        default="",
+    )
+
+    comfyui_seed_mode: EnumProperty(
+        name="Seed Mode",
+        items=[
+            ('FIXED', 'Fixed', 'Use the base seed as-is'),
+            ('INCREMENT', 'Increment', 'Increment the base seed for each workflow batch'),
+            ('RANDOM', 'Random', 'Resolve a random seed in ViewTexForge before submission'),
+        ],
+        default='FIXED',
+    )
+
+    comfyui_base_seed: IntProperty(
+        name="Base Seed",
+        description="Base seed resolved by ViewTexForge and passed to ComfyUI",
+        default=18,
+        min=0,
+        max=2147483647,
+    )
+
+    comfyui_is_running: BoolProperty(
+        name="ComfyUI Running",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_progress: FloatProperty(
+        name="Progress",
+        subtype='PERCENTAGE',
+        default=0.0,
+        min=0.0,
+        max=100.0,
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_status_text: StringProperty(
+        name="Generation Status",
+        default="Idle",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_prompt_id: StringProperty(
+        name="Prompt ID",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_input_mapping_json: StringProperty(
+        name="Input Mapping",
+        default="",
+        options={'SKIP_SAVE'},
+    )
+
+    comfyui_resolved_seed: IntProperty(
+        name="Resolved Seed",
+        default=0,
+        min=0,
+        max=2147483647,
+        options={'SKIP_SAVE'},
+    )
+

@@ -1,0 +1,830 @@
+{
+  "290": {
+    "inputs": {
+      "image": "clay (13).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_SourceImage01"
+    }
+  },
+  "291": {
+    "inputs": {
+      "image": "clay (14).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_SourceImage02"
+    }
+  },
+  "292": {
+    "inputs": {
+      "image": "clay (15).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_SourceImage03"
+    }
+  },
+  "293": {
+    "inputs": {
+      "image": "clay (16).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_SourceImage04"
+    }
+  },
+  "294": {
+    "inputs": {
+      "image": [
+        "290",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "画像サイズ取得"
+    }
+  },
+  "295": {
+    "inputs": {
+      "image1": [
+        "290",
+        0
+      ],
+      "image2": [
+        "291",
+        0
+      ],
+      "image3": [
+        "292",
+        0
+      ],
+      "image4": [
+        "293",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeImageList",
+    "_meta": {
+      "title": "Make Image List"
+    }
+  },
+  "296": {
+    "inputs": {
+      "image": "depth (13).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_DepthImage02"
+    }
+  },
+  "297": {
+    "inputs": {
+      "image": "depth (12).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_DepthImage01"
+    }
+  },
+  "298": {
+    "inputs": {
+      "columns": 2,
+      "cell_width": [
+        "299",
+        0
+      ],
+      "cell_height": [
+        "299",
+        1
+      ],
+      "padding": 4,
+      "images": [
+        "300",
+        0
+      ]
+    },
+    "class_type": "ImageGrid",
+    "_meta": {
+      "title": "画像グリッド"
+    }
+  },
+  "299": {
+    "inputs": {
+      "image": [
+        "297",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "画像サイズ取得"
+    }
+  },
+  "300": {
+    "inputs": {
+      "image1": [
+        "297",
+        0
+      ],
+      "image2": [
+        "296",
+        0
+      ],
+      "image3": [
+        "302",
+        0
+      ],
+      "image4": [
+        "303",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeImageList",
+    "_meta": {
+      "title": "Make Image List"
+    }
+  },
+  "301": {
+    "inputs": {
+      "columns": 2,
+      "cell_width": [
+        "294",
+        0
+      ],
+      "cell_height": [
+        "294",
+        1
+      ],
+      "padding": 4,
+      "images": [
+        "295",
+        0
+      ]
+    },
+    "class_type": "ImageGrid",
+    "_meta": {
+      "title": "画像グリッド"
+    }
+  },
+  "302": {
+    "inputs": {
+      "image": "depth (14).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_DepthImage03"
+    }
+  },
+  "303": {
+    "inputs": {
+      "image": "clay (16).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_DepthImage04"
+    }
+  },
+  "304": {
+    "inputs": {
+      "images": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "305": {
+    "inputs": {
+      "images": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "306": {
+    "inputs": {
+      "image": "mask (14).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_MaskImage02"
+    }
+  },
+  "307": {
+    "inputs": {
+      "image": "mask (13).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_MaskImage01"
+    }
+  },
+  "308": {
+    "inputs": {
+      "columns": 2,
+      "cell_width": [
+        "311",
+        0
+      ],
+      "cell_height": [
+        "311",
+        1
+      ],
+      "padding": 4,
+      "images": [
+        "310",
+        0
+      ]
+    },
+    "class_type": "ImageGrid",
+    "_meta": {
+      "title": "画像グリッド"
+    }
+  },
+  "309": {
+    "inputs": {
+      "images": [
+        "308",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "310": {
+    "inputs": {
+      "image1": [
+        "307",
+        0
+      ],
+      "image2": [
+        "306",
+        0
+      ],
+      "image3": [
+        "312",
+        0
+      ],
+      "image4": [
+        "313",
+        0
+      ]
+    },
+    "class_type": "ImpactMakeImageList",
+    "_meta": {
+      "title": "Make Image List"
+    }
+  },
+  "311": {
+    "inputs": {
+      "image": [
+        "307",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "画像サイズ取得"
+    }
+  },
+  "312": {
+    "inputs": {
+      "image": "mask (15).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_MaskImage03"
+    }
+  },
+  "313": {
+    "inputs": {
+      "image": "mask (12).png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_MaskImage04"
+    }
+  },
+  "314": {
+    "inputs": {
+      "image": "chr_junon_face_front_00009_.png"
+    },
+    "class_type": "LoadImage",
+    "_meta": {
+      "title": "ViewTexForge_input_ReferenceImage"
+    }
+  },
+  "346": {
+    "inputs": {
+      "low_threshold": 0.05,
+      "high_threshold": 0.2,
+      "image": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "Canny",
+    "_meta": {
+      "title": "キャニー"
+    }
+  },
+  "347": {
+    "inputs": {
+      "threshold_r": 0.15,
+      "threshold_g": 0.15,
+      "threshold_b": 0.15,
+      "image": [
+        "308",
+        0
+      ]
+    },
+    "class_type": "MaskFromRGBCMYBW+",
+    "_meta": {
+      "title": "🔧 Mask From RGB/CMY/BW"
+    }
+  },
+  "359": {
+    "inputs": {
+      "gguf_name": "qwen-image-edit-2511-Q8_0.gguf"
+    },
+    "class_type": "LoaderGGUF",
+    "_meta": {
+      "title": "GGUF Loader"
+    }
+  },
+  "360": {
+    "inputs": {
+      "shift": 3,
+      "model": [
+        "362",
+        0
+      ]
+    },
+    "class_type": "ModelSamplingAuraFlow",
+    "_meta": {
+      "title": "モデルサンプリングオーラフロー"
+    }
+  },
+  "362": {
+    "inputs": {
+      "lora_name": "Qwen-Image-Lightning-4steps-V2.0-bf16.safetensors",
+      "strength_model": 1,
+      "model": [
+        "359",
+        0
+      ]
+    },
+    "class_type": "LoraLoaderModelOnly",
+    "_meta": {
+      "title": "LoRAローダーモデルのみ"
+    }
+  },
+  "363": {
+    "inputs": {
+      "strength": 1,
+      "pre_cfg": false,
+      "model": [
+        "389",
+        0
+      ]
+    },
+    "class_type": "CFGNorm",
+    "_meta": {
+      "title": "CFG正規化"
+    }
+  },
+  "367": {
+    "inputs": {
+      "clip_name": "qwen_2.5_vl_7b_fp8_scaled.safetensors",
+      "type": "qwen_image",
+      "device": "default"
+    },
+    "class_type": "CLIPLoader",
+    "_meta": {
+      "title": "CLIPを読み込む"
+    }
+  },
+  "370": {
+    "inputs": {
+      "prompt": " ",
+      "clip": [
+        "367",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ],
+      "image1": [
+        "301",
+        0
+      ],
+      "image2": [
+        "314",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "ViewTexForge_input_NegativePrompt"
+    }
+  },
+  "371": {
+    "inputs": {
+      "prompt": "image1のカラーパレットをimage_2のもとに入れ替える。",
+      "clip": [
+        "367",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ],
+      "image1": [
+        "301",
+        0
+      ],
+      "image2": [
+        "314",
+        0
+      ]
+    },
+    "class_type": "TextEncodeQwenImageEditPlus",
+    "_meta": {
+      "title": "ViewTexForge_input_PositivePrompt"
+    }
+  },
+  "372": {
+    "inputs": {
+      "vae_name": "qwen_image_vae.safetensors"
+    },
+    "class_type": "VAELoader",
+    "_meta": {
+      "title": "VAEを読み込む"
+    }
+  },
+  "374": {
+    "inputs": {
+      "reference_latents_method": "index_timestep_zero",
+      "conditioning": [
+        "370",
+        0
+      ]
+    },
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "_meta": {
+      "title": "FluxKontextMultiReferenceLatentMethod"
+    }
+  },
+  "376": {
+    "inputs": {
+      "reference_latents_method": "index_timestep_zero",
+      "conditioning": [
+        "371",
+        0
+      ]
+    },
+    "class_type": "FluxKontextMultiReferenceLatentMethod",
+    "_meta": {
+      "title": "FluxKontextMultiReferenceLatentMethod"
+    }
+  },
+  "377": {
+    "inputs": {
+      "image": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale"
+    }
+  },
+  "378": {
+    "inputs": {
+      "pixels": [
+        "377",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ]
+    },
+    "class_type": "VAEEncode",
+    "_meta": {
+      "title": "VAEエンコード"
+    }
+  },
+  "381": {
+    "inputs": {
+      "seed": [
+        "406",
+        0
+      ],
+      "steps": 4,
+      "cfg": 1,
+      "sampler_name": "euler",
+      "scheduler": "simple",
+      "denoise": 1,
+      "model": [
+        "363",
+        0
+      ],
+      "positive": [
+        "376",
+        0
+      ],
+      "negative": [
+        "374",
+        0
+      ],
+      "latent_image": [
+        "378",
+        0
+      ]
+    },
+    "class_type": "KSampler",
+    "_meta": {
+      "title": "Kサンプラー"
+    }
+  },
+  "382": {
+    "inputs": {
+      "samples": [
+        "381",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ]
+    },
+    "class_type": "VAEDecode",
+    "_meta": {
+      "title": "VAEデコード"
+    }
+  },
+  "384": {
+    "inputs": {
+      "name": "qwen_image_depth_diffsynth_controlnet.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "モデルパッチローダー"
+    }
+  },
+  "386": {
+    "inputs": {
+      "name": "qwen_image_canny_diffsynth_controlnet.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "モデルパッチローダー"
+    }
+  },
+  "387": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "360",
+        0
+      ],
+      "model_patch": [
+        "384",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ],
+      "image": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "QwenImageDiffsynthControlnet",
+    "_meta": {
+      "title": "QwenImageDiffsynthControlnet"
+    }
+  },
+  "388": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "387",
+        0
+      ],
+      "model_patch": [
+        "386",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ],
+      "image": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "QwenImageDiffsynthControlnet",
+    "_meta": {
+      "title": "QwenImageDiffsynthControlnet"
+    }
+  },
+  "389": {
+    "inputs": {
+      "strength": 1,
+      "model": [
+        "388",
+        0
+      ],
+      "model_patch": [
+        "390",
+        0
+      ],
+      "vae": [
+        "372",
+        0
+      ],
+      "image": [
+        "301",
+        0
+      ],
+      "mask": [
+        "347",
+        7
+      ]
+    },
+    "class_type": "QwenImageDiffsynthControlnet",
+    "_meta": {
+      "title": "QwenImageDiffsynthControlnet"
+    }
+  },
+  "390": {
+    "inputs": {
+      "name": "qwen_image_inpaint_diffsynth_controlnet.safetensors"
+    },
+    "class_type": "ModelPatchLoader",
+    "_meta": {
+      "title": "モデルパッチローダー"
+    }
+  },
+  "406": {
+    "inputs": {
+      "seed": 18
+    },
+    "class_type": "SeedNode",
+    "_meta": {
+      "title": "ViewTexForge_input_Seed"
+    }
+  },
+  "411": {
+    "inputs": {
+      "images": [
+        "346",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "413": {
+    "inputs": {
+      "expression": "a /2",
+      "values.a": [
+        "414",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "414": {
+    "inputs": {
+      "image": [
+        "382",
+        0
+      ]
+    },
+    "class_type": "GetImageSize",
+    "_meta": {
+      "title": "画像サイズ取得"
+    }
+  },
+  "415": {
+    "inputs": {
+      "expression": "a /2",
+      "values.a": [
+        "414",
+        1
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "416": {
+    "inputs": {
+      "tile_width": [
+        "413",
+        1
+      ],
+      "tile_height": [
+        "415",
+        1
+      ],
+      "overlap": 0,
+      "image": [
+        "382",
+        0
+      ]
+    },
+    "class_type": "SplitImageToTileList",
+    "_meta": {
+      "title": "画像をタイルのリストに分割"
+    }
+  },
+  "424": {
+    "inputs": {
+      "filename_prefix": [
+        "436",
+        0
+      ],
+      "images": [
+        "416",
+        0
+      ]
+    },
+    "class_type": "SaveImage",
+    "_meta": {
+      "title": "ViewTexForge_output_GeneratedImage"
+    }
+  },
+  "425": {
+    "inputs": {
+      "value": "ViewTexForge_output/"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ViewTexForge_input_OutputDirName"
+    }
+  },
+  "435": {
+    "inputs": {
+      "value": "generated"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ViewTexForge_input_OutputFilePrefix"
+    }
+  },
+  "436": {
+    "inputs": {
+      "string_a": [
+        "425",
+        0
+      ],
+      "string_b": [
+        "435",
+        0
+      ],
+      "delimiter": "/"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "連結"
+    }
+  },
+  "437": {
+    "inputs": {
+      "images": [
+        "416",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  }
+}

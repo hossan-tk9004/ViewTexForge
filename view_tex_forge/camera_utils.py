@@ -104,15 +104,19 @@ def create_auto_cameras(context, target_objects):
 
     coll = ensure_camera_collection(scene)
     cameras = []
-    entries = [
-        ('Front', Vector((0.0, -1.0, 0.0))),
-        ('Back', Vector((0.0, 1.0, 0.0))),
-        ('Left', Vector((-1.0, 0.0, 0.0))),
-        ('Right', Vector((1.0, 0.0, 0.0))),
+    # View order is authored here. The first entry is always the canonical
+    # front/primary view. Persistent capture identity is numeric (view_####);
+    # natural-language direction labels are intentionally not stored.
+    directions = [
+        Vector((0.0, -1.0, 0.0)),  # canonical front / view_0001
+        Vector((0.0, 1.0, 0.0)),
+        Vector((-1.0, 0.0, 0.0)),
+        Vector((1.0, 0.0, 0.0)),
     ]
 
-    for label, direction in entries:
-        cam_data = bpy.data.cameras.new(f"ViewTexForgeCam_{label}")
+    for index, direction in enumerate(directions, start=1):
+        view_id = f"view_{index:04d}"
+        cam_data = bpy.data.cameras.new(f"ViewTexForgeCam_{view_id}")
         cam_data.type = 'ORTHO'
         cam_obj = bpy.data.objects.new(cam_data.name, cam_data)
         coll.objects.link(cam_obj)
@@ -125,7 +129,7 @@ def create_auto_cameras(context, target_objects):
             world_points,
             settings.camera_fit_margin,
         )
-        cameras.append((label, cam_obj, depth_near, depth_far))
+        cameras.append((view_id, cam_obj, depth_near, depth_far))
 
     return cameras
 
@@ -156,7 +160,7 @@ def create_viewport_camera(context, target_objects):
 
     world_points = get_bbox_world_points(context, target_objects)
     near, far, _, _ = fit_camera_clipping_and_depth(scene, cam_obj, world_points)
-    return [('Viewport', cam_obj, near, far)]
+    return [('view_0001', cam_obj, near, far)]
 
 
 def prepare_specified_camera(context, camera_obj, target_objects):
@@ -174,4 +178,4 @@ def prepare_specified_camera(context, camera_obj, target_objects):
 
     # Preserve the explicitly authored camera framing. Only clipping is adjusted.
     near, far, _, _ = fit_camera_clipping_and_depth(scene, camera_obj, world_points)
-    return [('Specified', camera_obj, near, far)], original
+    return [('view_0001', camera_obj, near, far)], original

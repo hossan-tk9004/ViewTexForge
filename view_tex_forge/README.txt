@@ -108,3 +108,64 @@ Version 0.2.1
 - Geometry Digest serialization now follows VTFGEOM1_LE_F64_U64 exactly.
 - Camera JSON v2 now records coordinate_system, matrix_convention, image_origin, and pixel_center_offset.
 - texture_merge_v1_compatible remains false unless the v1 contract checks all pass.
+
+Version 0.3.0
+- Added initial ViewTexForge -> ComfyUI generation integration.
+- Added configurable ComfyUI Server URL (default http://127.0.0.1:8188).
+- Connection status is checked automatically at add-on startup, after URL changes, periodically, and again at generation start.
+- Added API workflow JSON selector and a single shared Reference Image selector.
+- Added Fixed / Increment / Random seed modes. Seed resolution is performed by ViewTexForge before submitting the workflow.
+- Added HTTP-polling based generation status/progress display without blocking Blender's UI.
+- The current workflow adapter targets Qwen_3DCharacterTexture_generator_ggfu and processes the latest 4-view capture as one 2x2-grid ComfyUI job.
+- Clay / normalized Depth / Mask are uploaded for each of the 4 views, together with the shared reference image.
+- Generated tiles are downloaded to <Output Directory>/generated and renamed by view_id.
+- generated/generated_manifest.json records capture_id, workflow hash, reference hash, resolved seed, source-view mapping, and generated output mapping.
+
+ViewTexForge v0.3.1 - ComfyUI Workflow Contract
+-------------------------------------------------
+The bundled ComfyUI API workflow is stored under workflows/ and is used by default.
+A custom workflow can be selected from the UI when needed.
+
+ViewTexForge discovers integration nodes by _meta.title, not by ComfyUI node ID.
+Required contract titles:
+  ViewTexForge_input_SourceImage01..NN
+  ViewTexForge_input_DepthImage01..NN
+  ViewTexForge_input_MaskImage01..NN
+  ViewTexForge_input_ReferenceImage
+  ViewTexForge_input_PositivePrompt
+  ViewTexForge_input_NegativePrompt
+  ViewTexForge_input_Seed
+  ViewTexForge_input_OutputDirName
+  ViewTexForge_input_OutputFilePrefix
+  ViewTexForge_output_GeneratedImage
+
+The Source/Depth/Mask counts must match and numbering must be contiguous from 01.
+The workflow is validated automatically on startup, when its selection changes, and
+when the workflow file changes on disk. UI shows Workflow Status; detailed validation
+errors are printed to the Blender system console. Generate also validates immediately
+before submitting the workflow to ComfyUI.
+
+
+v0.3.2
+- Fixed ComfyUI upload filename collisions when multiple camera folders contain clay.png/depth.png/mask.png.
+- Uploaded input names now include the view ordinal and view_id so each workflow slot references a distinct file.
+- Added ComfyUI input mapping logs to Blender System Console.
+
+
+Version 0.3.3 - Canonical View IDs
+----------------------------------
+- Capture folders now use canonical numeric IDs: view_0001, view_0002, ...
+- The first Auto4 camera is always the canonical front view and therefore view_0001.
+- Natural-language direction names are no longer persisted as view_id or folder names.
+- No view_index field is added to camera.json; ordering is derived from the four-digit suffix of view_id.
+- ComfyUI capture discovery validates canonical, contiguous view IDs and sorts by their numeric suffix.
+- The ComfyUI panel shows the resolved input mapping; only view_0001 is annotated as (Front) for usability.
+
+
+ViewTexForge v0.3.4 - UI / Progress polish
+- ComfyUI workflow selection is no longer exposed; the bundled workflow is always used.
+- Texture Merge Contract and ComfyUI Input Mapping are hidden from the main panel.
+- Save section includes Show Explorer to open the configured output directory.
+- HTTP-polling generation progress now advances as an estimated activity percentage while a job is running.
+- Status text updates every poll with elapsed time and poll count so a long generation does not look hung.
+- Exact ComfyUI console stdout is not captured because ViewTexForge does not own the external ComfyUI process; completion remains authoritative via /history.
