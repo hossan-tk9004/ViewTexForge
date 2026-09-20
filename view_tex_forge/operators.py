@@ -1,5 +1,7 @@
 import os
 import uuid
+import subprocess
+import sys
 
 import bpy
 
@@ -23,6 +25,28 @@ from .utils import (
     force_view_layer_update,
     get_target_objects,
 )
+
+
+class VIEWTEXFORGE_OT_show_output_explorer(bpy.types.Operator):
+    bl_idname = "viewtexforge.show_output_explorer"
+    bl_label = "Show Explorer"
+    bl_description = "Open the configured ViewTexForge output directory in the system file browser"
+
+    def execute(self, context):
+        settings = context.scene.viewtexforge_settings
+        output_dir = bpy.path.abspath(settings.output_dir)
+        try:
+            ensure_dir(output_dir)
+            if sys.platform.startswith("win"):
+                os.startfile(output_dir)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", output_dir])
+            else:
+                subprocess.Popen(["xdg-open", output_dir])
+        except Exception as exc:
+            self.report({'ERROR'}, f"Could not open output directory: {exc}")
+            return {'CANCELLED'}
+        return {'FINISHED'}
 
 
 def _geometry_fingerprint(contract_info):
@@ -97,37 +121,37 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
 
                 with context_manager:
                     with lighting_scope:
-                        for label, cam_obj, depth_near, depth_far in camera_infos:
-                            label_dir = os.path.join(output_dir, label)
-                            ensure_dir(label_dir)
+                        for view_id, cam_obj, depth_near, depth_far in camera_infos:
+                            view_dir = os.path.join(output_dir, view_id)
+                            ensure_dir(view_dir)
 
                             if settings.output_clay:
                                 if settings.clay_render_mode == 'SOLID':
-                                    render_clay_viewport(scene, cam_obj, os.path.join(label_dir, 'clay.png'))
+                                    render_clay_viewport(scene, cam_obj, os.path.join(view_dir, 'clay.png'))
                                 else:
-                                    render_clay_lit(scene, cam_obj, os.path.join(label_dir, 'clay.png'), settings)
+                                    render_clay_lit(scene, cam_obj, os.path.join(view_dir, 'clay.png'), settings)
                             if settings.output_normal:
-                                render_normal_pass(scene, cam_obj, os.path.join(label_dir, 'normal.png'))
+                                render_normal_pass(scene, cam_obj, os.path.join(view_dir, 'normal.png'))
                             if settings.output_depth:
-                                render_depth_pass(scene, cam_obj, os.path.join(label_dir, 'depth.png'), depth_near, depth_far)
+                                render_depth_pass(scene, cam_obj, os.path.join(view_dir, 'depth.png'), depth_near, depth_far)
                             if settings.output_mask:
-                                render_mask_pass(scene, cam_obj, os.path.join(label_dir, 'mask.png'))
+                                render_mask_pass(scene, cam_obj, os.path.join(view_dir, 'mask.png'))
 
                             try:
                                 contract_info = render_texture_merge_contract_pass(
                                     scene,
                                     cam_obj,
-                                    os.path.join(label_dir, 'depth_raw.exr'),
-                                    os.path.join(label_dir, 'geometry_mask.png'),
+                                    os.path.join(view_dir, 'depth_raw.exr'),
+                                    os.path.join(view_dir, 'geometry_mask.png'),
                                     target_objects,
                                 )
                             except Exception as exc:
                                 contract_info = {"error": str(exc)}
-                                contract_warnings.append(f"{label}: {exc}")
+                                contract_warnings.append(f"{view_id}: {exc}")
 
                             pending_views.append({
-                                "label": label,
-                                "label_dir": label_dir,
+                                "view_id": view_id,
+                                "view_dir": view_dir,
                                 "contract_info": contract_info,
                             })
 
@@ -140,17 +164,17 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
 
                 for item in pending_views:
                     compatible, errors = write_camera_json(
-                        os.path.join(item["label_dir"], 'camera.json'),
+                        os.path.join(item["view_dir"], 'camera.json'),
                         scene,
                         settings,
-                        item["label"],
+                        item["view_id"],
                         capture_id,
                         item["contract_info"],
                         geometry_camera_independent,
                     )
                     if not compatible:
                         contract_warnings.append(
-                            f"{item['label']}: " + "; ".join(errors)
+                            f"{item['view_id']}: " + "; ".join(errors)
                         )
 
             if contract_warnings:

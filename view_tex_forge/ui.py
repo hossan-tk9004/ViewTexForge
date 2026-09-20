@@ -12,7 +12,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.2.1")
+        layout.label(text="Version 0.3.4")
         layout.separator()
 
         box = layout.box()
@@ -69,14 +69,56 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
             if settings.preview_mode:
                 box.label(text='Overlay shows final output frame', icon='INFO')
 
-        contract_box = layout.box()
-        contract_box.label(text="Texture Merge Contract")
-        contract_box.label(text="Camera JSON v2 / EVALUATED_RENDER", icon='CHECKMARK')
-        contract_box.label(text="Raw CAMERA_Z EXR + Geometry Mask")
-
         box = layout.box()
         box.label(text="Save")
         box.prop(settings, 'output_dir')
+        row = box.row(align=True)
+        row.operator('viewtexforge.show_output_explorer', text='Show Explorer', icon='FILE_FOLDER')
 
         layout.separator()
         layout.operator('viewtexforge.capture', icon='RENDER_STILL')
+
+        comfy = layout.box()
+        comfy.label(text="ComfyUI Generation")
+        comfy.prop(settings, 'comfyui_server_url', text='Server URL')
+
+        status = settings.comfyui_connection_status
+        if status == 'CONNECTED':
+            comfy.label(text='Status: Connected', icon='CHECKMARK')
+        elif status == 'CHECKING':
+            comfy.label(text='Status: Checking...', icon='TIME')
+        elif status == 'FAILED':
+            comfy.label(text='Status: Connection Failed', icon='ERROR')
+        else:
+            comfy.label(text='Status: Unknown', icon='QUESTION')
+
+        comfy.separator()
+        workflow_status = settings.comfyui_workflow_status
+        if workflow_status == 'VALID':
+            comfy.label(text='Workflow Status: Valid', icon='CHECKMARK')
+        elif workflow_status == 'CHECKING':
+            comfy.label(text='Workflow Status: Checking...', icon='TIME')
+        elif workflow_status == 'ERROR':
+            error_row = comfy.row()
+            error_row.alert = True
+            error_row.label(text='Workflow Status: Error', icon='ERROR')
+        else:
+            comfy.label(text='Workflow Status: Unknown', icon='QUESTION')
+
+        comfy.prop(settings, 'comfyui_reference_image', text='Reference Image')
+        comfy.prop(settings, 'comfyui_seed_mode', text='Seed Mode')
+        if settings.comfyui_seed_mode != 'RANDOM':
+            comfy.prop(settings, 'comfyui_base_seed', text='Base Seed')
+        else:
+            comfy.label(text='Seed is resolved by ViewTexForge at run time')
+
+        if settings.comfyui_is_running or settings.comfyui_progress > 0.0:
+            comfy.separator()
+            comfy.label(text=f"Status: {settings.comfyui_status_text}")
+            comfy.prop(settings, 'comfyui_progress', text='Estimated Progress', slider=True)
+            if settings.comfyui_resolved_seed:
+                comfy.label(text=f"Resolved Seed: {settings.comfyui_resolved_seed}")
+
+        row = comfy.row()
+        row.enabled = not settings.comfyui_is_running
+        row.operator('viewtexforge.comfyui_generate', icon='PLAY')
