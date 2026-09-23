@@ -190,7 +190,7 @@
   "304": {
     "inputs": {
       "images": [
-        "298",
+        "443",
         0
       ]
     },
@@ -202,7 +202,7 @@
   "305": {
     "inputs": {
       "images": [
-        "301",
+        "441",
         0
       ]
     },
@@ -254,7 +254,7 @@
   "309": {
     "inputs": {
       "images": [
-        "308",
+        "442",
         0
       ]
     },
@@ -331,7 +331,7 @@
       "low_threshold": 0.05,
       "high_threshold": 0.2,
       "image": [
-        "301",
+        "441",
         0
       ]
     },
@@ -346,7 +346,7 @@
       "threshold_g": 0.15,
       "threshold_b": 0.15,
       "image": [
-        "308",
+        "442",
         0
       ]
     },
@@ -367,6 +367,7 @@
   "360": {
     "inputs": {
       "shift": 3,
+      "sampling": "flow",
       "model": [
         "362",
         0
@@ -428,7 +429,7 @@
         0
       ],
       "image1": [
-        "301",
+        "441",
         0
       ],
       "image2": [
@@ -443,7 +444,7 @@
   },
   "371": {
     "inputs": {
-      "prompt": "image1のカラーパレットをimage_2のもとに入れ替える。",
+      "prompt": "image1のカラーパレットをimage_2のもとに入れ替える、アルベドテクスチャマップ、フラットカラー、完全に無照明、影なし、指向性照明なし、フラットグレーの背景。",
       "clip": [
         "367",
         0
@@ -453,7 +454,7 @@
         0
       ],
       "image1": [
-        "301",
+        "441",
         0
       ],
       "image2": [
@@ -501,22 +502,10 @@
       "title": "FluxKontextMultiReferenceLatentMethod"
     }
   },
-  "377": {
-    "inputs": {
-      "image": [
-        "301",
-        0
-      ]
-    },
-    "class_type": "FluxKontextImageScale",
-    "_meta": {
-      "title": "FluxKontextImageScale"
-    }
-  },
   "378": {
     "inputs": {
       "pixels": [
-        "377",
+        "441",
         0
       ],
       "vae": [
@@ -612,7 +601,7 @@
         0
       ],
       "image": [
-        "301",
+        "441",
         0
       ]
     },
@@ -637,7 +626,7 @@
         0
       ],
       "image": [
-        "298",
+        "443",
         0
       ]
     },
@@ -662,7 +651,7 @@
         0
       ],
       "image": [
-        "301",
+        "441",
         0
       ],
       "mask": [
@@ -686,7 +675,7 @@
   },
   "406": {
     "inputs": {
-      "seed": 18
+      "seed": 2
     },
     "class_type": "SeedNode",
     "_meta": {
@@ -705,57 +694,19 @@
       "title": "画像プレビュー"
     }
   },
-  "413": {
-    "inputs": {
-      "expression": "a /2",
-      "values.a": [
-        "414",
-        0
-      ]
-    },
-    "class_type": "ComfyMathExpression",
-    "_meta": {
-      "title": "数式"
-    }
-  },
-  "414": {
-    "inputs": {
-      "image": [
-        "382",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "画像サイズ取得"
-    }
-  },
-  "415": {
-    "inputs": {
-      "expression": "a /2",
-      "values.a": [
-        "414",
-        1
-      ]
-    },
-    "class_type": "ComfyMathExpression",
-    "_meta": {
-      "title": "数式"
-    }
-  },
   "416": {
     "inputs": {
       "tile_width": [
-        "413",
-        1
+        "294",
+        0
       ],
       "tile_height": [
-        "415",
+        "294",
         1
       ],
       "overlap": 0,
       "image": [
-        "382",
+        "469",
         0
       ]
     },
@@ -805,7 +756,7 @@
         0
       ],
       "string_b": [
-        "435",
+        "447",
         0
       ],
       "delimiter": "/"
@@ -825,6 +776,141 @@
     "class_type": "PreviewImage",
     "_meta": {
       "title": "画像プレビュー"
+    }
+  },
+  "440": {
+    "inputs": {
+      "resize_type": "target dimensions",
+      "resize_type.width": [
+        "466",
+        0
+      ],
+      "resize_type.height": [
+        "466",
+        2
+      ],
+      "quality": "ULTRA",
+      "images": [
+        "382",
+        0
+      ]
+    },
+    "class_type": "RTXVideoSuperResolution",
+    "_meta": {
+      "title": "RTX Video Super Resolution"
+    }
+  },
+  "441": {
+    "inputs": {
+      "image": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale"
+    }
+  },
+  "442": {
+    "inputs": {
+      "image": [
+        "308",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale"
+    }
+  },
+  "443": {
+    "inputs": {
+      "image": [
+        "298",
+        0
+      ]
+    },
+    "class_type": "FluxKontextImageScale",
+    "_meta": {
+      "title": "FluxKontextImageScale"
+    }
+  },
+  "445": {
+    "inputs": {
+      "prefix": "",
+      "suffix": "",
+      "input": [
+        "406",
+        0
+      ]
+    },
+    "class_type": "SomethingToString",
+    "_meta": {
+      "title": "Something To String"
+    }
+  },
+  "447": {
+    "inputs": {
+      "string_a": [
+        "435",
+        0
+      ],
+      "string_b": [
+        "445",
+        0
+      ],
+      "delimiter": "_"
+    },
+    "class_type": "StringConcatenate",
+    "_meta": {
+      "title": "連結"
+    }
+  },
+  "461": {
+    "inputs": {
+      "value": 2
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "ViewTexForge_input_ImageMag"
+    }
+  },
+  "466": {
+    "inputs": {
+      "value1": "a*c*2",
+      "value2": "b*c*2",
+      "a": [
+        "294",
+        0
+      ],
+      "b": [
+        "294",
+        1
+      ],
+      "c": [
+        "461",
+        0
+      ]
+    },
+    "class_type": "easy simpleMathDual",
+    "_meta": {
+      "title": "Simple Math Dual"
+    }
+  },
+  "469": {
+    "inputs": {
+      "resize_type": "scale by multiplier",
+      "resize_type.multiplier": 0.5,
+      "scale_method": "bicubic",
+      "input": [
+        "440",
+        0
+      ]
+    },
+    "class_type": "ResizeImageMaskNode",
+    "_meta": {
+      "title": "画像/マスクのリサイズ"
     }
   }
 }

@@ -60,6 +60,11 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
         settings.comfyui_is_running = True
         settings.comfyui_progress = 0.0
         settings.comfyui_status_text = "Starting ComfyUI generation..."
+        if not settings.execution_is_running:
+            settings.execution_current_stage = "ComfyUI"
+            settings.execution_stage_progress = 0.0
+            settings.execution_overall_progress = 0.0
+            settings.execution_status_text = settings.comfyui_status_text
         settings.comfyui_prompt_id = ""
         settings.comfyui_resolved_seed = 0
 
@@ -90,6 +95,11 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
             if kind == "progress":
                 settings.comfyui_progress = message.get("progress", settings.comfyui_progress)
                 settings.comfyui_status_text = message.get("status", settings.comfyui_status_text)
+                if not settings.execution_is_running:
+                    settings.execution_current_stage = "ComfyUI"
+                    settings.execution_stage_progress = settings.comfyui_progress
+                    settings.execution_overall_progress = settings.comfyui_progress
+                    settings.execution_status_text = settings.comfyui_status_text
             elif kind == "mapping":
                 # Mapping is intentionally hidden from the GUI; the detailed
                 # mapping remains available in the Blender system console.
@@ -100,11 +110,19 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
                 settings.comfyui_resolved_seed = int(message.get("seed", 0))
             elif kind == "error":
                 settings.comfyui_status_text = "Failed: " + message.get("message", "Unknown error")
+                if not settings.execution_is_running:
+                    settings.execution_current_stage = "Failed"
+                    settings.execution_status_text = settings.comfyui_status_text
                 failed = True
                 finished = True
             elif kind == "done":
                 settings.comfyui_progress = 100.0
                 settings.comfyui_status_text = "Completed"
+                if not settings.execution_is_running:
+                    settings.execution_current_stage = "Completed"
+                    settings.execution_stage_progress = 100.0
+                    settings.execution_overall_progress = 100.0
+                    settings.execution_status_text = "ComfyUI generation completed"
                 done_message = message.get("generated_dir")
                 finished = True
 

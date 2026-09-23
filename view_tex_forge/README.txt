@@ -169,3 +169,12 @@ ViewTexForge v0.3.4 - UI / Progress polish
 - HTTP-polling generation progress now advances as an estimated activity percentage while a job is running.
 - Status text updates every poll with elapsed time and poll count so a long generation does not look hung.
 - Exact ComfyUI console stdout is not captured because ViewTexForge does not own the external ComfyUI process; completion remains authoritative via /history.
+
+ViewTexForge v0.4.0
+- Integrated Standalone Texture Merge Core v1.
+- Added collapsible Capture / ComfyUI / Texture Merge settings (closed by default, scene-persistent).
+- Added single Execution selector with six single/multi-stage modes.
+- Added always-visible shared Status section with overall and stage progress.
+- Added Texture Merge settings and Run Texture Merge button.
+- ComfyUI generation now emits Texture Merge compatible views[] metadata in generated_manifest.json.
+- Texture Merge derives texture_merge_manifest.json and merge_settings.json automatically.

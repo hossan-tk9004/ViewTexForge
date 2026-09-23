@@ -342,3 +342,151 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         options={'SKIP_SAVE'},
     )
 
+
+    # Collapsible UI sections. These are intentionally saved with the Scene so
+    # the user's open/closed choices survive redraws and .blend reloads.
+    show_capture_settings: BoolProperty(
+        name="Capture Settings",
+        default=False,
+    )
+    show_comfyui_settings: BoolProperty(
+        name="ComfyUI Settings",
+        default=False,
+    )
+    show_texture_merge_settings: BoolProperty(
+        name="Texture Merge Settings",
+        default=False,
+    )
+    show_texture_merge_advanced: BoolProperty(
+        name="Advanced Merge Settings",
+        default=False,
+    )
+
+    execution_mode: EnumProperty(
+        name="Execution Mode",
+        items=[
+            ('CAPTURE_ONLY', 'Capture only', 'Capture camera source images only'),
+            ('CAPTURE_COMFY', 'Capture -> ComfyUI', 'Capture images, then run ComfyUI'),
+            ('FULL', 'Capture -> ComfyUI -> Texture Merge', 'Run the complete ViewTexForge pipeline'),
+            ('COMFY_ONLY', 'ComfyUI only', 'Run ComfyUI using the latest valid capture'),
+            ('COMFY_MERGE', 'ComfyUI -> Texture Merge', 'Run ComfyUI, then merge generated textures'),
+            ('MERGE_ONLY', 'Texture Merge only', 'Merge the latest generated camera textures'),
+        ],
+        default='FULL',
+    )
+
+    execution_is_running: BoolProperty(
+        name="Execution Running",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    execution_current_stage: StringProperty(
+        name="Current Stage",
+        default="Idle",
+        options={'SKIP_SAVE'},
+    )
+    execution_overall_progress: FloatProperty(
+        name="Overall Progress",
+        subtype='PERCENTAGE',
+        default=0.0,
+        min=0.0,
+        max=100.0,
+        options={'SKIP_SAVE'},
+    )
+    execution_stage_progress: FloatProperty(
+        name="Stage Progress",
+        subtype='PERCENTAGE',
+        default=0.0,
+        min=0.0,
+        max=100.0,
+        options={'SKIP_SAVE'},
+    )
+    execution_status_text: StringProperty(
+        name="Status Message",
+        default="Idle",
+        options={'SKIP_SAVE'},
+    )
+
+    texture_merge_resolution: EnumProperty(
+        name="Texture Resolution",
+        items=[
+            ('1024', '1024 x 1024', 'Generate 1024 square base-color textures'),
+            ('2048', '2048 x 2048', 'Generate 2048 square base-color textures'),
+            ('4096', '4096 x 4096', 'Generate 4096 square base-color textures'),
+        ],
+        default='2048',
+    )
+    texture_merge_depth_tolerance_mode: EnumProperty(
+        name="Depth Tolerance",
+        items=[
+            ('AUTO', 'Auto', 'Derive depth tolerance from capture pixel footprint'),
+            ('MANUAL', 'Manual', 'Use explicit depth tolerance values in meters'),
+        ],
+        default='AUTO',
+    )
+    texture_merge_depth_sigma_scale_px: FloatProperty(
+        name="Depth Sigma Scale (px)",
+        default=0.65,
+        min=0.000001,
+    )
+    texture_merge_depth_cutoff_scale_px: FloatProperty(
+        name="Depth Cutoff Scale (px)",
+        default=1.70,
+        min=0.000001,
+    )
+    texture_merge_depth_sigma_m: FloatProperty(
+        name="Depth Sigma (m)",
+        default=0.0012,
+        min=0.000000001,
+        precision=6,
+    )
+    texture_merge_depth_cutoff_m: FloatProperty(
+        name="Depth Cutoff (m)",
+        default=0.003,
+        min=0.000000001,
+        precision=6,
+    )
+    texture_merge_facing_exponent: FloatProperty(
+        name="Facing Exponent",
+        default=4.0,
+        min=0.000001,
+    )
+    texture_merge_face_gate_gain: FloatProperty(
+        name="Face Gate Gain",
+        default=12.0,
+        min=0.000001,
+    )
+    texture_merge_padding_radius: IntProperty(
+        name="Padding Radius",
+        default=16,
+        min=0,
+    )
+    texture_merge_png_bit_depth: EnumProperty(
+        name="PNG Bit Depth",
+        items=[
+            ('8', '8 bit', 'Write 8-bit PNG textures'),
+            ('16', '16 bit', 'Write 16-bit PNG textures'),
+        ],
+        default='8',
+    )
+    texture_merge_debug_output: BoolProperty(
+        name="Debug Output",
+        description="Write diagnostic merge images and reports",
+        default=False,
+    )
+    texture_merge_output_subdir: StringProperty(
+        name="Merge Output Folder",
+        description="Subfolder under Output Directory for merged textures",
+        default="merged",
+    )
+
+    texture_merge_material_apply_mode: EnumProperty(
+        name="Material Apply",
+        description="How to apply merged textures to Blender materials after Texture Merge",
+        items=[
+            ('NONE', 'Do Not Apply', 'Only write merged texture files and do not modify materials'),
+            ('CURRENT', 'Apply to Current Material', 'Replace the Base Color input on the current materials'),
+            ('NEW', 'Apply to New Material', 'Duplicate current materials, assign them to the objects, and connect the merged Base Color'),
+        ],
+        default='NEW',
+    )
