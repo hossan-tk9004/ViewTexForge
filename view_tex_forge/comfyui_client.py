@@ -707,6 +707,33 @@ class ComfyUIGenerationWorker(threading.Thread):
             })
 
         self.progress(95, "Writing generated manifest...")
+        # Keep generation provenance in outputs[] and also emit the compact
+        # Texture Merge views[] contract. Paths in views[] are relative to the
+        # generated manifest itself, as required by the embedded merge core.
+        merge_views = []
+        for item in manifest_outputs:
+            camera_abs = os.path.join(self.output_dir, item["camera_json"])
+            color_abs = os.path.join(self.output_dir, item["generated_image"])
+            with open(camera_abs, "r", encoding="utf-8-sig") as camera_handle:
+                camera_meta = json.load(camera_handle)
+            resolution = list((camera_meta.get("render") or {}).get("resolution") or [])
+            if len(resolution) != 2:
+                raise RuntimeError(f"camera.json has no valid render.resolution: {camera_abs}")
+            merge_views.append({
+                "view_id": item["view_id"],
+                "camera_json_path": os.path.relpath(camera_abs, generated_dir).replace("\\", "/"),
+                "color": {
+                    "path": os.path.relpath(color_abs, generated_dir).replace("\\", "/"),
+                    "resolution": [int(resolution[0]), int(resolution[1])],
+                    "color_space": "SRGB",
+                },
+                "registration": {
+                    "status": "ALIGNED",
+                    "mapping": "IDENTITY_PIXEL",
+                    "reference": "CAPTURE_PIXEL_GRID",
+                },
+            })
+
         manifest = {
             "schema_version": 1,
             "producer": {"name": "ViewTexForge", "feature": "ComfyUI Generation"},
@@ -728,6 +755,7 @@ class ComfyUIGenerationWorker(threading.Thread):
                 "resolved": int(resolved_seed),
             },
             "outputs": manifest_outputs,
+            "views": merge_views,
         }
         manifest_path = os.path.join(generated_dir, "generated_manifest.json")
         with open(manifest_path, "w", encoding="utf-8") as handle:

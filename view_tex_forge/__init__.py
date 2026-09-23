@@ -1,7 +1,7 @@
 bl_info = {
     "name": "ViewTexForge",
     "author": "OpenAI",
-    "version": (0, 3, 4),
+    "version": (0, 4, 1),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > ViewTexForge",
     "description": "Camera-based capture tools for AI texture generation workflows",
@@ -12,6 +12,8 @@ import bpy
 from .props import VIEWTEXFORGE_PG_Settings
 from .operators import VIEWTEXFORGE_OT_capture, VIEWTEXFORGE_OT_show_output_explorer
 from .comfyui_operator import VIEWTEXFORGE_OT_comfyui_generate
+from .texture_merge_operator import VIEWTEXFORGE_OT_texture_merge
+from .execution_operator import VIEWTEXFORGE_OT_run_execution
 from .comfyui_client import register_connection_monitor, unregister_connection_monitor
 from .ui import VIEWTEXFORGE_PT_panel
 from .preview import remove_preview_handler
@@ -21,6 +23,8 @@ classes = (
     VIEWTEXFORGE_OT_capture,
     VIEWTEXFORGE_OT_show_output_explorer,
     VIEWTEXFORGE_OT_comfyui_generate,
+    VIEWTEXFORGE_OT_texture_merge,
+    VIEWTEXFORGE_OT_run_execution,
     VIEWTEXFORGE_PT_panel,
 )
 

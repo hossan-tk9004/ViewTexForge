@@ -71,6 +71,12 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
     def execute(self, context):
         settings = context.scene.viewtexforge_settings
         scene = context.scene
+        direct_status = not settings.execution_is_running
+        if direct_status:
+            settings.execution_current_stage = "Capture"
+            settings.execution_stage_progress = 5.0
+            settings.execution_overall_progress = 5.0
+            settings.execution_status_text = "Capturing source images..."
 
         if not (settings.output_clay or settings.output_normal or settings.output_depth or settings.output_mask):
             self.report({'ERROR'}, "Please enable at least one legacy output image type.")
@@ -187,9 +193,18 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
                     print(f"[ViewTexForge] Texture Merge contract warning: {warning}")
             else:
                 self.report({'INFO'}, f"Capture complete: {output_dir}")
+            if direct_status:
+                settings.execution_current_stage = "Completed"
+                settings.execution_stage_progress = 100.0
+                settings.execution_overall_progress = 100.0
+                settings.execution_status_text = "Capture completed"
             return {'FINISHED'}
 
         except Exception as e:
+            if direct_status:
+                settings.execution_current_stage = "Failed"
+                settings.execution_stage_progress = 0.0
+                settings.execution_status_text = f"Capture failed: {e}"
             self.report({'ERROR'}, str(e))
             return {'CANCELLED'}
 

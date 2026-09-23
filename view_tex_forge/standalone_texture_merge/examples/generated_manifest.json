@@ -1,0 +1,20 @@
+{
+  "schema_version": "1.0.0",
+  "capture_id": "REPLACE_WITH_CAPTURE_ID",
+  "views": [
+    {
+      "view_id": "front",
+      "camera_json_path": "../capture/front/camera.json",
+      "color": {
+        "path": "../generated/front.png",
+        "resolution": [1024, 1024],
+        "color_space": "SRGB"
+      },
+      "registration": {
+        "status": "ALIGNED",
+        "mapping": "IDENTITY_PIXEL",
+        "reference": "CAPTURE_PIXEL_GRID"
+      }
+    }
+  ]
+}
