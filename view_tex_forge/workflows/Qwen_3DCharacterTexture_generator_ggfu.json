@@ -1,155 +1,22 @@
 {
-  "290": {
-    "inputs": {
-      "image": "clay (13).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_SourceImage01"
-    }
-  },
-  "291": {
-    "inputs": {
-      "image": "clay (14).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_SourceImage02"
-    }
-  },
-  "292": {
-    "inputs": {
-      "image": "clay (15).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_SourceImage03"
-    }
-  },
-  "293": {
-    "inputs": {
-      "image": "clay (16).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_SourceImage04"
-    }
-  },
   "294": {
     "inputs": {
       "image": [
-        "290",
+        "576",
         0
       ]
     },
     "class_type": "GetImageSize",
     "_meta": {
       "title": "画像サイズ取得"
-    }
-  },
-  "295": {
-    "inputs": {
-      "image1": [
-        "290",
-        0
-      ],
-      "image2": [
-        "291",
-        0
-      ],
-      "image3": [
-        "292",
-        0
-      ],
-      "image4": [
-        "293",
-        0
-      ]
-    },
-    "class_type": "ImpactMakeImageList",
-    "_meta": {
-      "title": "Make Image List"
-    }
-  },
-  "296": {
-    "inputs": {
-      "image": "depth (13).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_DepthImage02"
-    }
-  },
-  "297": {
-    "inputs": {
-      "image": "depth (12).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_DepthImage01"
-    }
-  },
-  "298": {
-    "inputs": {
-      "columns": 2,
-      "cell_width": [
-        "299",
-        0
-      ],
-      "cell_height": [
-        "299",
-        1
-      ],
-      "padding": 4,
-      "images": [
-        "300",
-        0
-      ]
-    },
-    "class_type": "ImageGrid",
-    "_meta": {
-      "title": "画像グリッド"
-    }
-  },
-  "299": {
-    "inputs": {
-      "image": [
-        "297",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "画像サイズ取得"
-    }
-  },
-  "300": {
-    "inputs": {
-      "image1": [
-        "297",
-        0
-      ],
-      "image2": [
-        "296",
-        0
-      ],
-      "image3": [
-        "302",
-        0
-      ],
-      "image4": [
-        "303",
-        0
-      ]
-    },
-    "class_type": "ImpactMakeImageList",
-    "_meta": {
-      "title": "Make Image List"
     }
   },
   "301": {
     "inputs": {
-      "columns": 2,
+      "columns": [
+        "665",
+        0
+      ],
       "cell_width": [
         "294",
         0
@@ -158,39 +25,21 @@
         "294",
         1
       ],
-      "padding": 4,
+      "padding": 0,
       "images": [
-        "295",
+        "569",
         0
       ]
     },
     "class_type": "ImageGrid",
     "_meta": {
       "title": "画像グリッド"
-    }
-  },
-  "302": {
-    "inputs": {
-      "image": "depth (14).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_DepthImage03"
-    }
-  },
-  "303": {
-    "inputs": {
-      "image": "clay (16).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_DepthImage04"
     }
   },
   "304": {
     "inputs": {
       "images": [
-        "443",
+        "719",
         0
       ]
     },
@@ -202,119 +51,25 @@
   "305": {
     "inputs": {
       "images": [
-        "441",
+        "700",
         0
       ]
     },
     "class_type": "PreviewImage",
     "_meta": {
       "title": "画像プレビュー"
-    }
-  },
-  "306": {
-    "inputs": {
-      "image": "mask (14).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_MaskImage02"
-    }
-  },
-  "307": {
-    "inputs": {
-      "image": "mask (13).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_MaskImage01"
-    }
-  },
-  "308": {
-    "inputs": {
-      "columns": 2,
-      "cell_width": [
-        "311",
-        0
-      ],
-      "cell_height": [
-        "311",
-        1
-      ],
-      "padding": 4,
-      "images": [
-        "310",
-        0
-      ]
-    },
-    "class_type": "ImageGrid",
-    "_meta": {
-      "title": "画像グリッド"
     }
   },
   "309": {
     "inputs": {
       "images": [
-        "442",
+        "716",
         0
       ]
     },
     "class_type": "PreviewImage",
     "_meta": {
       "title": "画像プレビュー"
-    }
-  },
-  "310": {
-    "inputs": {
-      "image1": [
-        "307",
-        0
-      ],
-      "image2": [
-        "306",
-        0
-      ],
-      "image3": [
-        "312",
-        0
-      ],
-      "image4": [
-        "313",
-        0
-      ]
-    },
-    "class_type": "ImpactMakeImageList",
-    "_meta": {
-      "title": "Make Image List"
-    }
-  },
-  "311": {
-    "inputs": {
-      "image": [
-        "307",
-        0
-      ]
-    },
-    "class_type": "GetImageSize",
-    "_meta": {
-      "title": "画像サイズ取得"
-    }
-  },
-  "312": {
-    "inputs": {
-      "image": "mask (15).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_MaskImage03"
-    }
-  },
-  "313": {
-    "inputs": {
-      "image": "mask (12).png"
-    },
-    "class_type": "LoadImage",
-    "_meta": {
-      "title": "ViewTexForge_input_MaskImage04"
     }
   },
   "314": {
@@ -331,7 +86,7 @@
       "low_threshold": 0.05,
       "high_threshold": 0.2,
       "image": [
-        "441",
+        "700",
         0
       ]
     },
@@ -346,7 +101,7 @@
       "threshold_g": 0.15,
       "threshold_b": 0.15,
       "image": [
-        "442",
+        "716",
         0
       ]
     },
@@ -429,7 +184,7 @@
         0
       ],
       "image1": [
-        "441",
+        "700",
         0
       ],
       "image2": [
@@ -454,7 +209,7 @@
         0
       ],
       "image1": [
-        "441",
+        "700",
         0
       ],
       "image2": [
@@ -505,7 +260,7 @@
   "378": {
     "inputs": {
       "pixels": [
-        "441",
+        "700",
         0
       ],
       "vae": [
@@ -601,7 +356,7 @@
         0
       ],
       "image": [
-        "441",
+        "700",
         0
       ]
     },
@@ -626,7 +381,7 @@
         0
       ],
       "image": [
-        "443",
+        "719",
         0
       ]
     },
@@ -651,7 +406,7 @@
         0
       ],
       "image": [
-        "441",
+        "700",
         0
       ],
       "mask": [
@@ -675,7 +430,7 @@
   },
   "406": {
     "inputs": {
-      "seed": 2
+      "seed": 18
     },
     "class_type": "SeedNode",
     "_meta": {
@@ -766,18 +521,6 @@
       "title": "連結"
     }
   },
-  "437": {
-    "inputs": {
-      "images": [
-        "416",
-        0
-      ]
-    },
-    "class_type": "PreviewImage",
-    "_meta": {
-      "title": "画像プレビュー"
-    }
-  },
   "440": {
     "inputs": {
       "resize_type": "target dimensions",
@@ -798,42 +541,6 @@
     "class_type": "RTXVideoSuperResolution",
     "_meta": {
       "title": "RTX Video Super Resolution"
-    }
-  },
-  "441": {
-    "inputs": {
-      "image": [
-        "301",
-        0
-      ]
-    },
-    "class_type": "FluxKontextImageScale",
-    "_meta": {
-      "title": "FluxKontextImageScale"
-    }
-  },
-  "442": {
-    "inputs": {
-      "image": [
-        "308",
-        0
-      ]
-    },
-    "class_type": "FluxKontextImageScale",
-    "_meta": {
-      "title": "FluxKontextImageScale"
-    }
-  },
-  "443": {
-    "inputs": {
-      "image": [
-        "298",
-        0
-      ]
-    },
-    "class_type": "FluxKontextImageScale",
-    "_meta": {
-      "title": "FluxKontextImageScale"
     }
   },
   "445": {
@@ -867,19 +574,10 @@
       "title": "連結"
     }
   },
-  "461": {
-    "inputs": {
-      "value": 2
-    },
-    "class_type": "PrimitiveInt",
-    "_meta": {
-      "title": "ViewTexForge_input_ImageMag"
-    }
-  },
   "466": {
     "inputs": {
       "value1": "a*c*2",
-      "value2": "b*c*2",
+      "value2": "b*d*2",
       "a": [
         "294",
         0
@@ -889,8 +587,12 @@
         1
       ],
       "c": [
-        "461",
+        "665",
         0
+      ],
+      "d": [
+        "669",
+        1
       ]
     },
     "class_type": "easy simpleMathDual",
@@ -911,6 +613,524 @@
     "class_type": "ResizeImageMaskNode",
     "_meta": {
       "title": "画像/マスクのリサイズ"
+    }
+  },
+  "505": {
+    "inputs": {
+      "In": [
+        "569",
+        0
+      ]
+    },
+    "class_type": "List Length",
+    "_meta": {
+      "title": "List Length"
+    }
+  },
+  "538": {
+    "inputs": {
+      "columns": [
+        "665",
+        0
+      ],
+      "cell_width": [
+        "294",
+        0
+      ],
+      "cell_height": [
+        "294",
+        1
+      ],
+      "padding": 0,
+      "images": [
+        "601",
+        0
+      ]
+    },
+    "class_type": "ImageGrid",
+    "_meta": {
+      "title": "画像グリッド"
+    }
+  },
+  "561": {
+    "inputs": {
+      "columns": [
+        "665",
+        0
+      ],
+      "cell_width": [
+        "294",
+        0
+      ],
+      "cell_height": [
+        "294",
+        1
+      ],
+      "padding": 0,
+      "images": [
+        "571",
+        0
+      ]
+    },
+    "class_type": "ImageGrid",
+    "_meta": {
+      "title": "画像グリッド"
+    }
+  },
+  "569": {
+    "inputs": {
+      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\clay",
+      "file_filter": "*.png",
+      "sort_method": "numerical"
+    },
+    "class_type": "ImageListLoader",
+    "_meta": {
+      "title": "ViewTexForge_input_SourceImageFolderPath"
+    }
+  },
+  "571": {
+    "inputs": {
+      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\depth",
+      "file_filter": "*.png",
+      "sort_method": "numerical"
+    },
+    "class_type": "ImageListLoader",
+    "_meta": {
+      "title": "ViewTexForge_input_DepthImageFolderPath"
+    }
+  },
+  "576": {
+    "inputs": {
+      "index": 0,
+      "list": [
+        "569",
+        0
+      ]
+    },
+    "class_type": "GetItemFromList",
+    "_meta": {
+      "title": "Get Item From List"
+    }
+  },
+  "601": {
+    "inputs": {
+      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\mask",
+      "file_filter": "*.png",
+      "sort_method": "numerical"
+    },
+    "class_type": "ImageListLoader",
+    "_meta": {
+      "title": "ViewTexForge_input_MaskImageFolderPath"
+    }
+  },
+  "656": {
+    "inputs": {
+      "expression": "a == 6",
+      "values.a": [
+        "505",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "658": {
+    "inputs": {
+      "expression": "a == 12",
+      "values.a": [
+        "505",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "659": {
+    "inputs": {
+      "boolean": [
+        "656",
+        2
+      ],
+      "on_true": [
+        "661",
+        0
+      ],
+      "on_false": [
+        "723",
+        1
+      ]
+    },
+    "class_type": "easy ifElse",
+    "_meta": {
+      "title": "If else"
+    }
+  },
+  "660": {
+    "inputs": {
+      "value": 2
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "整数"
+    }
+  },
+  "661": {
+    "inputs": {
+      "value": 3
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "整数"
+    }
+  },
+  "662": {
+    "inputs": {
+      "value": 4
+    },
+    "class_type": "PrimitiveInt",
+    "_meta": {
+      "title": "整数"
+    }
+  },
+  "663": {
+    "inputs": {
+      "boolean": [
+        "658",
+        2
+      ],
+      "on_true": [
+        "662",
+        0
+      ],
+      "on_false": [
+        "659",
+        0
+      ]
+    },
+    "class_type": "easy ifElse",
+    "_meta": {
+      "title": "If else"
+    }
+  },
+  "665": {
+    "inputs": {
+      "value": [
+        "663",
+        0
+      ]
+    },
+    "class_type": "easy int",
+    "_meta": {
+      "title": "Int"
+    }
+  },
+  "668": {
+    "inputs": {
+      "source": [
+        "665",
+        0
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "プレビュー任意"
+    }
+  },
+  "669": {
+    "inputs": {
+      "expression": "a / b",
+      "values.a": [
+        "505",
+        0
+      ],
+      "values.b": [
+        "665",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "674": {
+    "inputs": {
+      "images": [
+        "469",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "700": {
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "713",
+        0
+      ],
+      "resize_type.height": [
+        "714",
+        0
+      ],
+      "resize_type.crop": "disabled",
+      "scale_method": "bicubic",
+      "input": [
+        "301",
+        0
+      ]
+    },
+    "class_type": "ResizeImageMaskNode",
+    "_meta": {
+      "title": "画像/マスクのリサイズ"
+    }
+  },
+  "703": {
+    "inputs": {
+      "value1": "1024",
+      "value2": "1024"
+    },
+    "class_type": "easy simpleMathDual",
+    "_meta": {
+      "title": "width-height_4"
+    }
+  },
+  "704": {
+    "inputs": {
+      "value1": "1248",
+      "value2": "832"
+    },
+    "class_type": "easy simpleMathDual",
+    "_meta": {
+      "title": "width-height_6"
+    }
+  },
+  "705": {
+    "inputs": {
+      "value1": "1152",
+      "value2": "864"
+    },
+    "class_type": "easy simpleMathDual",
+    "_meta": {
+      "title": "width-height_12"
+    }
+  },
+  "706": {
+    "inputs": {
+      "boolean": [
+        "656",
+        2
+      ],
+      "on_true": [
+        "709",
+        0
+      ],
+      "on_false": [
+        "708",
+        0
+      ]
+    },
+    "class_type": "easy ifElse",
+    "_meta": {
+      "title": "If else"
+    }
+  },
+  "707": {
+    "inputs": {
+      "boolean": [
+        "658",
+        2
+      ],
+      "on_true": [
+        "710",
+        0
+      ],
+      "on_false": [
+        "706",
+        0
+      ]
+    },
+    "class_type": "easy ifElse",
+    "_meta": {
+      "title": "If else"
+    }
+  },
+  "708": {
+    "inputs": {
+      "value1": [
+        "703",
+        0
+      ],
+      "value2": [
+        "703",
+        2
+      ]
+    },
+    "class_type": "ImpactMakeAnyList",
+    "_meta": {
+      "title": "Make List (Any)"
+    }
+  },
+  "709": {
+    "inputs": {
+      "value1": [
+        "704",
+        0
+      ],
+      "value2": [
+        "704",
+        2
+      ]
+    },
+    "class_type": "ImpactMakeAnyList",
+    "_meta": {
+      "title": "Make List (Any)"
+    }
+  },
+  "710": {
+    "inputs": {
+      "value1": [
+        "705",
+        0
+      ],
+      "value2": [
+        "705",
+        2
+      ]
+    },
+    "class_type": "ImpactMakeAnyList",
+    "_meta": {
+      "title": "Make List (Any)"
+    }
+  },
+  "711": {
+    "inputs": {
+      "index": 0,
+      "list": [
+        "707",
+        0
+      ]
+    },
+    "class_type": "GetItemFromList",
+    "_meta": {
+      "title": "Get Item From List"
+    }
+  },
+  "712": {
+    "inputs": {
+      "index": 1,
+      "list": [
+        "707",
+        0
+      ]
+    },
+    "class_type": "GetItemFromList",
+    "_meta": {
+      "title": "Get Item From List"
+    }
+  },
+  "713": {
+    "inputs": {
+      "displaytext": "1024",
+      "input": [
+        "711",
+        0
+      ]
+    },
+    "class_type": "To_Int",
+    "_meta": {
+      "title": "𝙆 整数に変換"
+    }
+  },
+  "714": {
+    "inputs": {
+      "displaytext": "1024",
+      "input": [
+        "712",
+        0
+      ]
+    },
+    "class_type": "To_Int",
+    "_meta": {
+      "title": "𝙆 整数に変換"
+    }
+  },
+  "716": {
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "713",
+        0
+      ],
+      "resize_type.height": [
+        "714",
+        0
+      ],
+      "resize_type.crop": "disabled",
+      "scale_method": "bicubic",
+      "input": [
+        "538",
+        0
+      ]
+    },
+    "class_type": "ResizeImageMaskNode",
+    "_meta": {
+      "title": "画像/マスクのリサイズ"
+    }
+  },
+  "719": {
+    "inputs": {
+      "resize_type": "scale dimensions",
+      "resize_type.width": [
+        "713",
+        0
+      ],
+      "resize_type.height": [
+        "714",
+        0
+      ],
+      "resize_type.crop": "disabled",
+      "scale_method": "bicubic",
+      "input": [
+        "561",
+        0
+      ]
+    },
+    "class_type": "ResizeImageMaskNode",
+    "_meta": {
+      "title": "画像/マスクのリサイズ"
+    }
+  },
+  "723": {
+    "inputs": {
+      "expression": "a ** 0.5",
+      "values.a": [
+        "505",
+        0
+      ]
+    },
+    "class_type": "ComfyMathExpression",
+    "_meta": {
+      "title": "数式"
+    }
+  },
+  "724": {
+    "inputs": {
+      "source": [
+        "669",
+        1
+      ]
+    },
+    "class_type": "PreviewAny",
+    "_meta": {
+      "title": "プレビュー任意"
     }
   }
 }

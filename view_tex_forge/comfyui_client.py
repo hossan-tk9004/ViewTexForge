@@ -17,10 +17,12 @@ import bpy
 # ViewTexForge Workflow Contract. Nodes are discovered by _meta.title rather
 # than by ComfyUI node IDs, so workflows can be edited/re-saved without
 # breaking the integration as long as these contract titles are preserved.
+# Source/Depth/Mask are folder-based inputs; the capture output folders are
+# passed directly to ComfyUI ImageListLoader nodes.
 WORKFLOW_CONTRACT = {
-    "source_prefix": "ViewTexForge_input_SourceImage",
-    "depth_prefix": "ViewTexForge_input_DepthImage",
-    "mask_prefix": "ViewTexForge_input_MaskImage",
+    "source_folder": "ViewTexForge_input_SourceImageFolderPath",
+    "depth_folder": "ViewTexForge_input_DepthImageFolderPath",
+    "mask_folder": "ViewTexForge_input_MaskImageFolderPath",
     "reference": "ViewTexForge_input_ReferenceImage",
     "positive_prompt": "ViewTexForge_input_PositivePrompt",
     "negative_prompt": "ViewTexForge_input_NegativePrompt",
@@ -31,6 +33,9 @@ WORKFLOW_CONTRACT = {
 }
 
 WORKFLOW_EXPECTED_TYPES = {
+    "source_folder": "ImageListLoader",
+    "depth_folder": "ImageListLoader",
+    "mask_folder": "ImageListLoader",
     "reference": "LoadImage",
     "positive_prompt": "TextEncodeQwenImageEditPlus",
     "negative_prompt": "TextEncodeQwenImageEditPlus",
@@ -97,43 +102,26 @@ def validate_workflow(workflow, *, log_errors=True):
                 errors.append(f"Duplicate contract title '{title}' on nodes {', '.join(ids)}.")
 
         contract = {"title_index": title_index}
-        groups = {}
-        for key, prefix in (
-            ("source", WORKFLOW_CONTRACT["source_prefix"]),
-            ("depth", WORKFLOW_CONTRACT["depth_prefix"]),
-            ("mask", WORKFLOW_CONTRACT["mask_prefix"]),
-        ):
-            nodes = _numbered_contract_nodes(title_index, prefix)
-            groups[key] = nodes
-            if not nodes:
-                errors.append(f"Missing nodes matching '{prefix}##'.")
-                continue
-            expected = list(range(1, len(nodes) + 1))
-            actual = [item[0] for item in nodes]
-            if actual != expected:
-                errors.append(
-                    f"{key.title()} image numbering must be contiguous from 01; found {actual}."
-                )
-            for _, node_id, title in nodes:
-                node_type = workflow[node_id].get("class_type")
-                if node_type != "LoadImage":
-                    errors.append(
-                        f"'{title}' must be class_type LoadImage, got {node_type!r}."
-                    )
-                elif "image" not in (workflow[node_id].get("inputs") or {}):
-                    errors.append(f"'{title}' is missing inputs.image.")
-
-        counts = {key: len(value) for key, value in groups.items()}
-        if len(set(counts.values())) > 1:
-            errors.append(
-                "Source/Depth/Mask input counts must match: "
-                + ", ".join(f"{key}={value}" for key, value in counts.items())
-            )
-
-        for key in (
+        required_keys = (
+            "source_folder", "depth_folder", "mask_folder",
             "reference", "positive_prompt", "negative_prompt", "seed",
             "output_dir", "output_prefix", "generated_output",
-        ):
+        )
+        required_input_keys = {
+            "source_folder": "folder_path",
+            "depth_folder": "folder_path",
+            "mask_folder": "folder_path",
+            "reference": "image",
+            "positive_prompt": "prompt",
+            "negative_prompt": "prompt",
+            "seed": "seed",
+            "output_dir": "value",
+            "output_prefix": "value",
+            "generated_output": "images",
+        }
+
+        resolved = {}
+        for key in required_keys:
             title = WORKFLOW_CONTRACT[key]
             node_id = title_index.get(title)
             if node_id is None:
@@ -146,33 +134,24 @@ def validate_workflow(workflow, *, log_errors=True):
                     f"'{title}' must be class_type {expected_type}, got {actual_type!r}."
                 )
                 continue
-            required_input_key = {
-                "reference": "image",
-                "positive_prompt": "prompt",
-                "negative_prompt": "prompt",
-                "seed": "seed",
-                "output_dir": "value",
-                "output_prefix": "value",
-                "generated_output": "images",
-            }[key]
-            if required_input_key not in (workflow[node_id].get("inputs") or {}):
-                errors.append(
-                    f"'{title}' is missing inputs.{required_input_key}."
-                )
+            input_key = required_input_keys[key]
+            if input_key not in (workflow[node_id].get("inputs") or {}):
+                errors.append(f"'{title}' is missing inputs.{input_key}.")
+                continue
+            resolved[key] = node_id
 
         if not errors:
             contract.update({
-                "source_nodes": [item[1] for item in groups["source"]],
-                "depth_nodes": [item[1] for item in groups["depth"]],
-                "mask_nodes": [item[1] for item in groups["mask"]],
-                "reference_node": title_index[WORKFLOW_CONTRACT["reference"]],
-                "positive_prompt_node": title_index[WORKFLOW_CONTRACT["positive_prompt"]],
-                "negative_prompt_node": title_index[WORKFLOW_CONTRACT["negative_prompt"]],
-                "seed_node": title_index[WORKFLOW_CONTRACT["seed"]],
-                "output_dir_node": title_index[WORKFLOW_CONTRACT["output_dir"]],
-                "output_prefix_node": title_index[WORKFLOW_CONTRACT["output_prefix"]],
-                "save_node": title_index[WORKFLOW_CONTRACT["generated_output"]],
-                "view_count": counts["source"],
+                "source_folder_node": resolved["source_folder"],
+                "depth_folder_node": resolved["depth_folder"],
+                "mask_folder_node": resolved["mask_folder"],
+                "reference_node": resolved["reference"],
+                "positive_prompt_node": resolved["positive_prompt"],
+                "negative_prompt_node": resolved["negative_prompt"],
+                "seed_node": resolved["seed"],
+                "output_dir_node": resolved["output_dir"],
+                "output_prefix_node": resolved["output_prefix"],
+                "save_node": resolved["generated_output"],
             })
 
     if errors and log_errors:
@@ -416,6 +395,42 @@ def _sha256_file(path):
     return digest.hexdigest()
 
 
+_IMAGE_LIST_CACHE_MARKER_PREFIX = ".viewtexforge_cache_"
+
+
+def _cache_busted_folder_path(folder, job_id):
+    """Return a unique lexical path that resolves to *folder*.
+
+    Comfy_KepListStuff's ImageListLoader does not implement IS_CHANGED, so
+    ComfyUI cannot see changes to files inside an otherwise unchanged
+    folder_path.  A unique empty marker directory plus ``..`` keeps the
+    filesystem target identical while changing the node input signature on
+    every ViewTexForge run.  This invalidates only the ImageListLoader branch
+    and leaves model/CLIP/VAE loader caches available for reuse.
+    """
+    folder = os.path.abspath(folder)
+
+    # Remove only empty marker directories created by previous ViewTexForge
+    # runs. Never recursively delete anything from a capture folder.
+    try:
+        for entry in os.scandir(folder):
+            if not entry.is_dir() or not entry.name.startswith(_IMAGE_LIST_CACHE_MARKER_PREFIX):
+                continue
+            try:
+                os.rmdir(entry.path)
+            except OSError:
+                # If it is not empty (unexpected), leave it untouched.
+                pass
+    except OSError:
+        pass
+
+    marker_name = f"{_IMAGE_LIST_CACHE_MARKER_PREFIX}{job_id}"
+    marker_dir = os.path.join(folder, marker_name)
+    os.makedirs(marker_dir, exist_ok=True)
+
+    # Deliberately do NOT normalize/abspath this result; the ``marker/..``
+    # spelling is the cache-busting input value seen by ComfyUI.
+    return os.path.join(folder, marker_name, os.pardir)
 
 
 def view_id_number(view_id):
@@ -430,10 +445,102 @@ def view_id_number(view_id):
     return number
 
 def discover_latest_capture(output_dir):
-    groups = {}
+    """Discover the current ViewTexForge capture from capture.json.
+
+    Current ViewTexForge capture layout stores per-view camera metadata as
+    camera/view_XXXX.json and image passes in shared folders such as clay/,
+    depth/, and mask/. The root capture.json is the canonical index.
+
+    A legacy fallback for per-view folders containing camera.json is retained
+    so older captures can still be consumed.
+    """
     if not os.path.isdir(output_dir):
         raise RuntimeError(f"Capture output directory does not exist: {output_dir}")
 
+    manifest_path = os.path.join(output_dir, "capture.json")
+    if os.path.isfile(manifest_path):
+        try:
+            with open(manifest_path, "r", encoding="utf-8-sig") as handle:
+                manifest = json.load(handle)
+        except Exception as exc:
+            raise RuntimeError(f"Could not read ViewTexForge capture manifest: {manifest_path}: {exc}") from exc
+
+        capture_id = manifest.get("capture_id")
+        manifest_views = manifest.get("views") or []
+        if not capture_id:
+            raise RuntimeError(f"capture.json has no capture_id: {manifest_path}")
+        if not manifest_views:
+            raise RuntimeError(f"capture.json contains no views: {manifest_path}")
+
+        folder_map = manifest.get("folders") or {}
+        clay_dir = os.path.join(output_dir, folder_map.get("clay", "clay"))
+        depth_dir = os.path.join(output_dir, folder_map.get("depth", "depth"))
+        mask_dir = os.path.join(output_dir, folder_map.get("mask", "mask"))
+        camera_dir = os.path.join(output_dir, folder_map.get("camera", "camera"))
+
+        views = []
+        for item in manifest_views:
+            view_id = item.get("view_id")
+            if not view_id:
+                raise RuntimeError(f"capture.json contains a view without view_id: {item}")
+            try:
+                view_number = view_id_number(view_id)
+            except ValueError as exc:
+                raise RuntimeError(f"Invalid view_id in capture.json: {exc}") from exc
+
+            files = item.get("files") or {}
+            camera_value = files.get("camera")
+            if camera_value:
+                camera_json = camera_value if os.path.isabs(camera_value) else os.path.join(output_dir, camera_value)
+            else:
+                camera_json = os.path.join(camera_dir, f"{view_id}.json")
+
+            clay_value = files.get("clay")
+            depth_value = files.get("depth")
+            mask_value = files.get("mask")
+            clay_path = clay_value if clay_value and os.path.isabs(clay_value) else (
+                os.path.join(output_dir, clay_value) if clay_value else os.path.join(clay_dir, f"{view_id}.png")
+            )
+            depth_path = depth_value if depth_value and os.path.isabs(depth_value) else (
+                os.path.join(output_dir, depth_value) if depth_value else os.path.join(depth_dir, f"{view_id}.png")
+            )
+            mask_path = mask_value if mask_value and os.path.isabs(mask_value) else (
+                os.path.join(output_dir, mask_value) if mask_value else os.path.join(mask_dir, f"{view_id}.png")
+            )
+
+            if not os.path.isfile(camera_json):
+                raise RuntimeError(f"Camera JSON not found for {view_id}: {camera_json}")
+
+            views.append({
+                "capture_id": capture_id,
+                "view_id": view_id,
+                "view_number": view_number,
+                "folder": output_dir,
+                "camera_json": os.path.abspath(camera_json),
+                "clay": os.path.abspath(clay_path),
+                "depth": os.path.abspath(depth_path),
+                "mask": os.path.abspath(mask_path),
+                "mtime": os.path.getmtime(camera_json),
+            })
+
+        views.sort(key=lambda v: v["view_number"])
+        numbers = [v["view_number"] for v in views]
+        expected = list(range(1, len(views) + 1))
+        if numbers != expected:
+            raise RuntimeError(
+                f"Capture '{capture_id}' has non-contiguous view_ids: {numbers}. "
+                f"Expected {expected} (view_0001 ... view_{len(views):04d})."
+            )
+
+        for view in views:
+            for key in ("clay", "depth", "mask"):
+                if not os.path.isfile(view[key]):
+                    raise RuntimeError(f"Missing {key} image for view '{view['view_id']}': {view[key]}")
+
+        return capture_id, views
+
+    # Legacy fallback: one folder per view with camera.json/clay.png/depth.png/mask.png.
+    groups = {}
     for entry in os.scandir(output_dir):
         if not entry.is_dir():
             continue
@@ -468,7 +575,9 @@ def discover_latest_capture(output_dir):
         groups.setdefault(capture_id, []).append(record)
 
     if not groups:
-        raise RuntimeError("No ViewTexForge capture folders containing camera.json were found.")
+        raise RuntimeError(
+            "No ViewTexForge capture was found. Expected capture.json or legacy per-view camera.json files."
+        )
 
     capture_id, views = max(
         groups.items(),
@@ -490,7 +599,6 @@ def discover_latest_capture(output_dir):
                 raise RuntimeError(f"Missing {key}.png for view '{view['view_id']}': {view[key]}")
 
     return capture_id, views
-
 
 def resolve_seed(base_seed, seed_mode, batch_index=0):
     base_seed = max(0, int(base_seed))
@@ -547,59 +655,79 @@ class ComfyUIGenerationWorker(threading.Thread):
         valid, errors, contract = validate_workflow(workflow)
         if not valid:
             raise RuntimeError("Workflow validation failed. See Blender system console for details.")
-        if len(views) != contract["view_count"]:
-            raise RuntimeError(
-                f"Workflow expects {contract['view_count']} views, but capture '{capture_id}' contains {len(views)}."
-            )
 
         resolved_seed = resolve_seed(self.base_seed, self.seed_mode, 0)
         self.emit("seed", seed=resolved_seed)
 
-        subfolder = f"viewtexforge/{self.job_id}"
-        upload_items = []
-        for view in views:
-            upload_items.extend([
-                (view["view_id"], "clay", view["clay"]),
-                (view["view_id"], "depth", view["depth"]),
-                (view["view_id"], "mask", view["mask"]),
-            ])
-        upload_items.append(("reference", "reference", self.reference_path))
+        # Capture output is already organized as folder-based ComfyUI input:
+        #   <output>/clay/view_0001.png ...
+        #   <output>/depth/view_0001.png ...
+        #   <output>/mask/view_0001.png ...
+        # Pass these folders directly to ImageListLoader instead of uploading
+        # every camera image through ComfyUI's /upload/image endpoint.
+        input_folders = {
+            "source": os.path.abspath(os.path.join(self.output_dir, "clay")),
+            "depth": os.path.abspath(os.path.join(self.output_dir, "depth")),
+            "mask": os.path.abspath(os.path.join(self.output_dir, "mask")),
+        }
+        for label, folder in input_folders.items():
+            if not os.path.isdir(folder):
+                raise RuntimeError(f"ComfyUI {label} input folder not found: {folder}")
 
-        uploaded = {}
-        total_uploads = len(upload_items)
-        view_ordinals = {str(view["view_id"]): int(view["view_number"]) for view in views}
-        for index, (view_id, kind, path) in enumerate(upload_items):
-            pct = 8 + (24.0 * index / max(total_uploads, 1))
-            self.progress(pct, f"Uploading {kind}: {view_id}")
-            extension = os.path.splitext(path)[1].lower() or ".png"
-            if view_id == "reference":
-                remote_name = f"reference{extension}"
-            else:
-                ordinal = view_ordinals[str(view_id)]
-                remote_name = f"{ordinal:02d}_{_safe_name(view_id)}_{kind}{extension}"
-            uploaded[(view_id, kind)] = upload_image(
-                self.server_url, path, subfolder, remote_name=remote_name
+        # Ensure all three folder inputs contain exactly the capture's canonical
+        # view files before the workflow is submitted. This protects the list
+        # ordering expected by ImageListLoader(sort_method=numerical).
+        expected_names = [f"{view['view_id']}.png" for view in views]
+        for label, folder in input_folders.items():
+            actual_names = sorted(
+                name for name in os.listdir(folder)
+                if name.lower().endswith('.png') and name.lower().startswith('view_')
             )
+            if actual_names != expected_names:
+                raise RuntimeError(
+                    f"ComfyUI {label} folder does not match capture '{capture_id}'. "
+                    f"Expected {expected_names}, found {actual_names}: {folder}"
+                )
 
-        print("[ViewTexForge][ComfyUI Input Mapping]")
-        for index, view in enumerate(views):
-            view_id = view["view_id"]
-            display_role = " (Front)" if view.get("view_number") == 1 else ""
-            print(f"  Input {index + 1:02d} -> {view_id}{display_role}")
-            print(f"    Source: {uploaded[(view_id, 'clay')]}")
-            print(f"    Depth : {uploaded[(view_id, 'depth')]}")
-            print(f"    Mask  : {uploaded[(view_id, 'mask')]}")
-        print(f"  Reference: {uploaded[('reference', 'reference')]}")
+        self.progress(16, "Preparing ComfyUI folder inputs...")
 
-        # Keep one consistent view order across source/depth/mask and output tile mapping.
-        for index, node_id in enumerate(contract["source_nodes"]):
-            workflow[node_id]["inputs"]["image"] = uploaded[(views[index]["view_id"], "clay")]
-        for index, node_id in enumerate(contract["depth_nodes"]):
-            workflow[node_id]["inputs"]["image"] = uploaded[(views[index]["view_id"], "depth")]
-        for index, node_id in enumerate(contract["mask_nodes"]):
-            workflow[node_id]["inputs"]["image"] = uploaded[(views[index]["view_id"], "mask")]
-        workflow[contract["reference_node"]]["inputs"]["image"] = uploaded[("reference", "reference")]
+        # ImageListLoader has no IS_CHANGED hook, so an unchanged folder_path
+        # can reuse a stale cached image list even when the folder contents
+        # changed (for example 16 views -> 9 views). Give only these three
+        # loader nodes a unique-but-equivalent path on every run.
+        submitted_folders = {
+            key: _cache_busted_folder_path(folder, self.job_id)
+            for key, folder in input_folders.items()
+        }
+        workflow[contract["source_folder_node"]]["inputs"]["folder_path"] = submitted_folders["source"]
+        workflow[contract["depth_folder_node"]]["inputs"]["folder_path"] = submitted_folders["depth"]
+        workflow[contract["mask_folder_node"]]["inputs"]["folder_path"] = submitted_folders["mask"]
+
+        # Reference remains a single LoadImage input, so upload only this file.
+        subfolder = f"viewtexforge/{self.job_id}"
+        self.progress(24, "Uploading reference image...")
+        extension = os.path.splitext(self.reference_path)[1].lower() or ".png"
+        reference_remote = upload_image(
+            self.server_url,
+            self.reference_path,
+            subfolder,
+            remote_name=f"reference{extension}",
+        )
+        workflow[contract["reference_node"]]["inputs"]["image"] = reference_remote
         workflow[contract["seed_node"]]["inputs"]["seed"] = resolved_seed
+
+        print("[ViewTexForge][ComfyUI Folder Mapping]")
+        print(f"  Source Folder: {input_folders['source']}")
+        print(f"  Depth Folder : {input_folders['depth']}")
+        print(f"  Mask Folder  : {input_folders['mask']}")
+        print(f"  View Count   : {len(views)}")
+        print(f"  First View   : {views[0]['view_id']} (Front)")
+        print(f"  Reference    : {reference_remote}")
+        print(f"  Cache Nonce  : {self.job_id}")
+        print("[ViewTexForge][ComfyUI ImageListLoader Cache Bust]")
+        print(f"  Source Input : {submitted_folders['source']}")
+        print(f"  Depth Input  : {submitted_folders['depth']}")
+        print(f"  Mask Input   : {submitted_folders['mask']}")
 
         # ComfyUI-side output location/prefix are controlled by the workflow contract.
         workflow[contract["output_dir_node"]].setdefault("inputs", {})["value"] = "ViewTexForge_output"

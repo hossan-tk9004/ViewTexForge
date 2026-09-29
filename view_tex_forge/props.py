@@ -161,10 +161,23 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
 
     camera_fit_margin: FloatProperty(
         name="Camera Margin",
-        description="Framing margin for Auto 4 Cameras. Smaller values frame tighter.",
+        description="Framing margin for Auto Cameras. Smaller values frame tighter.",
         default=1.05,
         min=1.0,
         soft_max=1.5,
+    )
+
+    auto_camera_grid: EnumProperty(
+        name="Camera Layout",
+        description="Automatically generated camera count and ComfyUI tile layout",
+        items=[
+            ('4', '2 x 2 (4 Cameras)', 'Front / Right / Back / Left'),
+            ('6', '3 x 2 (6 Cameras)', 'Front / Right / Back / Left / Top / Bottom'),
+            ('9', '3 x 3 (9 Cameras)', 'Legacy 9-view set: eight horizontal views plus Top'),
+            ('12', '4 x 3 (12 Cameras)', '4 horizontal, 4 upper-diagonal, and 4 lower-cardinal views'),
+            ('16', '4 x 4 (16 Cameras)', 'Legacy 16-view set: 8 horizontal, 4 upper-cardinal, and 4 lower-diagonal views'),
+        ],
+        default='4',
     )
 
     render_size_preset: EnumProperty(
@@ -183,7 +196,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         name="Camera",
         items=[
             ('VIEWPORT', 'Viewport Camera', 'Use the current 3D viewport camera/view'),
-            ('AUTO4', 'Auto 4 Cameras', 'Create front/back/left/right cameras automatically'),
+            ('AUTO4', 'Auto Cameras', 'Create a selectable 4, 6, 9, 12, or 16 camera multi-view set'),
             ('SPECIFIED', 'Specified Camera', 'Use a specified camera object'),
         ],
         default='AUTO4',

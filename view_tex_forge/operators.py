@@ -1,4 +1,5 @@
 import os
+import re
 import uuid
 import subprocess
 import sys
@@ -6,7 +7,7 @@ import sys
 import bpy
 
 from .camera_utils import create_auto_cameras, create_viewport_camera, prepare_specified_camera
-from .metadata import write_camera_json
+from .metadata import write_camera_json, write_capture_manifest
 from .lighting_utils import AutoLightingScope
 from .render_utils import (
     render_clay_viewport,
@@ -25,6 +26,19 @@ from .utils import (
     force_view_layer_update,
     get_target_objects,
 )
+
+
+OUTPUT_FOLDERS = {
+    "clay": "clay",
+    "normal": "normal",
+    "depth": "depth",
+    "mask": "mask",
+    "depth_raw": "raw_depth",
+    "geometry_mask": "geometry_mask",
+    "camera": "camera",
+}
+
+_VIEW_FILE_RE = re.compile(r"^view_\d{4}\.(?:png|exr|json)$", re.IGNORECASE)
 
 
 class VIEWTEXFORGE_OT_show_output_explorer(bpy.types.Operator):
@@ -62,6 +76,33 @@ def _geometry_fingerprint(contract_info):
     return tuple(sorted(items))
 
 
+def _path_for(output_dir, kind, view_id, extension):
+    folder = os.path.join(output_dir, OUTPUT_FOLDERS[kind])
+    ensure_dir(folder)
+    return os.path.join(folder, f"{view_id}.{extension}")
+
+
+def _root_relative(output_dir, path):
+    return os.path.relpath(path, output_dir).replace(os.sep, "/")
+
+
+def _clear_managed_capture_outputs(output_dir):
+    """Remove stale managed view files while leaving unrelated user/generated files alone."""
+    for folder_name in OUTPUT_FOLDERS.values():
+        folder = os.path.join(output_dir, folder_name)
+        if not os.path.isdir(folder):
+            continue
+        for name in os.listdir(folder):
+            if not _VIEW_FILE_RE.match(name):
+                continue
+            path = os.path.join(folder, name)
+            if os.path.isfile(path):
+                os.remove(path)
+    manifest_path = os.path.join(output_dir, "capture.json")
+    if os.path.isfile(manifest_path):
+        os.remove(manifest_path)
+
+
 class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
     bl_idname = "viewtexforge.capture"
     bl_label = "Capture Images"
@@ -97,6 +138,10 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
         contract_warnings = []
 
         try:
+            # Folder-based downstream loaders must never see files left over from a
+            # previous 4/6/12-view capture.
+            _clear_managed_capture_outputs(output_dir)
+
             with RenderSettingsScope(scene):
                 size = int(settings.render_size_preset)
                 scene.render.resolution_x = size
@@ -127,28 +172,40 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
 
                 with context_manager:
                     with lighting_scope:
-                        for view_id, cam_obj, depth_near, depth_far in camera_infos:
-                            view_dir = os.path.join(output_dir, view_id)
-                            ensure_dir(view_dir)
+                        total_views = max(1, len(camera_infos))
+                        for view_ordinal, (view_id, cam_obj, depth_near, depth_far, view_meta) in enumerate(camera_infos, start=1):
+                            if direct_status:
+                                settings.execution_stage_progress = 5.0 + (70.0 * (view_ordinal - 1) / total_views)
+                                settings.execution_status_text = f"Capturing {view_id} ({view_ordinal}/{total_views})..."
+
+                            paths = {
+                                "clay": _path_for(output_dir, "clay", view_id, "png") if settings.output_clay else None,
+                                "normal": _path_for(output_dir, "normal", view_id, "png") if settings.output_normal else None,
+                                "depth": _path_for(output_dir, "depth", view_id, "png") if settings.output_depth else None,
+                                "mask": _path_for(output_dir, "mask", view_id, "png") if settings.output_mask else None,
+                                "depth_raw": _path_for(output_dir, "depth_raw", view_id, "exr"),
+                                "geometry_mask": _path_for(output_dir, "geometry_mask", view_id, "png"),
+                                "camera": _path_for(output_dir, "camera", view_id, "json"),
+                            }
 
                             if settings.output_clay:
                                 if settings.clay_render_mode == 'SOLID':
-                                    render_clay_viewport(scene, cam_obj, os.path.join(view_dir, 'clay.png'))
+                                    render_clay_viewport(scene, cam_obj, paths["clay"])
                                 else:
-                                    render_clay_lit(scene, cam_obj, os.path.join(view_dir, 'clay.png'), settings)
+                                    render_clay_lit(scene, cam_obj, paths["clay"], settings)
                             if settings.output_normal:
-                                render_normal_pass(scene, cam_obj, os.path.join(view_dir, 'normal.png'))
+                                render_normal_pass(scene, cam_obj, paths["normal"])
                             if settings.output_depth:
-                                render_depth_pass(scene, cam_obj, os.path.join(view_dir, 'depth.png'), depth_near, depth_far)
+                                render_depth_pass(scene, cam_obj, paths["depth"], depth_near, depth_far)
                             if settings.output_mask:
-                                render_mask_pass(scene, cam_obj, os.path.join(view_dir, 'mask.png'))
+                                render_mask_pass(scene, cam_obj, paths["mask"])
 
                             try:
                                 contract_info = render_texture_merge_contract_pass(
                                     scene,
                                     cam_obj,
-                                    os.path.join(view_dir, 'depth_raw.exr'),
-                                    os.path.join(view_dir, 'geometry_mask.png'),
+                                    paths["depth_raw"],
+                                    paths["geometry_mask"],
                                     target_objects,
                                 )
                             except Exception as exc:
@@ -157,7 +214,8 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
 
                             pending_views.append({
                                 "view_id": view_id,
-                                "view_dir": view_dir,
+                                "view_meta": view_meta,
+                                "paths": paths,
                                 "contract_info": contract_info,
                             })
 
@@ -168,31 +226,57 @@ class VIEWTEXFORGE_OT_capture(bpy.types.Operator):
                     and len(set(fingerprints)) == 1
                 )
 
+                manifest_views = []
                 for item in pending_views:
                     compatible, errors = write_camera_json(
-                        os.path.join(item["view_dir"], 'camera.json'),
+                        item["paths"]["camera"],
                         scene,
                         settings,
                         item["view_id"],
+                        item["view_meta"],
                         capture_id,
                         item["contract_info"],
                         geometry_camera_independent,
+                        item["paths"],
                     )
                     if not compatible:
-                        contract_warnings.append(
-                            f"{item['view_id']}: " + "; ".join(errors)
-                        )
+                        contract_warnings.append(f"{item['view_id']}: " + "; ".join(errors))
+
+                    view_meta = item["view_meta"]
+                    files = {}
+                    for kind, path in item["paths"].items():
+                        if path and os.path.exists(path):
+                            files[kind] = _root_relative(output_dir, path)
+
+                    manifest_views.append({
+                        "view_id": item["view_id"],
+                        "view_index": int(view_meta.get("view_index", 1)),
+                        "view_label": view_meta.get("view_label"),
+                        "yaw_deg": view_meta.get("yaw_deg"),
+                        "pitch_deg": view_meta.get("pitch_deg"),
+                        "texture_merge_v1_compatible": bool(compatible),
+                        "files": files,
+                    })
+
+                write_capture_manifest(
+                    os.path.join(output_dir, "capture.json"),
+                    scene,
+                    settings,
+                    capture_id,
+                    manifest_views,
+                )
 
             if contract_warnings:
                 self.report(
                     {'WARNING'},
                     "Capture completed, but Texture Merge v1 compatibility is false for one or more views. "
-                    "See camera.json contract_error and Blender Console.",
+                    "See camera JSON contract_error and Blender Console.",
                 )
                 for warning in contract_warnings:
                     print(f"[ViewTexForge] Texture Merge contract warning: {warning}")
             else:
                 self.report({'INFO'}, f"Capture complete: {output_dir}")
+
             if direct_status:
                 settings.execution_current_stage = "Completed"
                 settings.execution_stage_progress = 100.0
