@@ -178,3 +178,55 @@ ViewTexForge v0.4.0
 - Added Texture Merge settings and Run Texture Merge button.
 - ComfyUI generation now emits Texture Merge compatible views[] metadata in generated_manifest.json.
 - Texture Merge derives texture_merge_manifest.json and merge_settings.json automatically.
+
+
+Version 0.5.0
+- Auto Cameras supports selectable 2x2 (4), 3x3 (9), and 4x4 (16) deterministic view sets.
+- view_0001 remains the canonical Front view.
+- 3x3 uses eight horizontal views plus Top; 4x4 adds upper and lower rings.
+- Capture outputs are grouped by type: clay, normal, depth, mask, raw_depth, geometry_mask, and camera.
+- Capture filenames are normalized to view_XXXX across all output types.
+- Added capture.json manifest with capture_id, grid size, ordered views, directions, folders, and per-view file paths.
+- Managed capture folders are cleared of stale view_XXXX files before each capture so folder loading remains deterministic across changing Auto Camera layouts.
+- Existing ComfyUI integration code is unchanged in this release.
+- Bundled ComfyUI workflow JSON replaced with the supplied workflow.
+
+Version 0.5.5
+- Kept Texture Merge source data unchanged while updating only the ComfyUI-facing helper exports.
+- mask/view_XXXX.png is now rewritten as RGB 8-bit with pure black/white values duplicated to R=G=B.
+- depth/view_XXXX.png is now rewritten as RGB 8-bit with the original normalized depth appearance preserved as closely as possible.
+- depth_raw/view_XXXX.exr and geometry_mask/view_XXXX.png remain the authoritative Texture Merge inputs and are not changed by this update.
+- capture.json metadata now reports the ComfyUI depth helper as 8-bit RGB duplicated depth and the mask helper as 8-bit RGB duplicated binary mask.
+
+
+Version 0.5.6
+- Reworked Auto Cameras from 4 / 9 / 16 views to 4 / 6 / 12 cameras for 2x2 / 3x2 / 4x3 ComfyUI tiling.
+- 4-camera mode is unchanged: Front / Right / Back / Left.
+- 6-camera mode uses the six orthogonal directions: Front / Right / Back / Left / Top / Bottom.
+- 12-camera mode uses 4 horizontal views, 4 upper diagonal views at pitch +45 degrees, and 4 lower cardinal views at pitch -35 degrees.
+- view_0001 remains Front in every Auto Camera layout.
+- capture.json now records grid_columns and grid_rows in addition to grid_size.
+- Bundled ComfyUI grid column calculation now uses ceil(sqrt(view_count)) so 4 / 6 / 12 images form 2x2 / 3x2 / 4x3 grids.
+
+
+Version 0.5.7
+- Auto Camera orthographic fitting now uses the actual evaluated target geometry projected into each camera's local 2D plane.
+- Removed the cube/AABB-based ortho-scale floor that caused oblique Upper/Lower views to appear much smaller than horizontal views.
+- Auto Cameras are laterally recentered from each view's projected 2D bounds before ortho_scale is calculated.
+- Camera Margin is applied to the final projected fit, so the dominant projected axis targets approximately 1 / margin of the frame.
+- Camera JSON continues to be captured after the final fitted camera transform/ortho scale, preserving Texture Merge projection consistency.
+- Bundled ComfyUI workflow JSON replaced with the newly supplied workflow.
+
+
+Version 0.5.8
+- Added selectable Auto Camera layouts for 4 / 6 / 8 / 12 / 16 cameras.
+- Restored the legacy 8-view horizontal ring (the former 9-view family without the standalone Top camera) for validation.
+- Restored the legacy 16-view angle set while keeping the newer projected 2D BBox orthographic fitting.
+- 8-camera mode uses a 4x2 tile layout; 16-camera mode uses a 4x4 tile layout.
+- Bundled ComfyUI workflow JSON replaced with the newly supplied workflow.
+
+Version 0.5.9
+- Replaced the temporary 8-camera validation mode with the restored legacy 9-camera mode.
+- Auto Camera layouts are now 4 / 6 / 9 / 12 / 16.
+- 9-camera mode uses the legacy 3x3 layout: eight horizontal views plus Top.
+- The projected 2D BBox orthographic fit remains active for all auto-camera layouts, including 9 and 16.

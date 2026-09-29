@@ -25,7 +25,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.4.1")
+        layout.label(text="Version 0.5.9")
         layout.separator()
 
         save = layout.box()
@@ -85,6 +85,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
             capture.label(text="Camera")
             capture.prop(settings, 'camera_mode', expand=True)
             if settings.camera_mode == 'AUTO4':
+                capture.prop(settings, 'auto_camera_grid', text='Camera Layout')
                 capture.prop(settings, 'camera_fit_margin', text='Camera Margin')
             if settings.camera_mode == 'SPECIFIED':
                 capture.prop(settings, 'specified_camera')

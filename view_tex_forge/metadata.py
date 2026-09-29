@@ -6,7 +6,8 @@ import bpy
 
 SCHEMA_VERSION = "2.0.0"
 INPUT_CONTRACT = "STANDALONE_TEXTURE_MERGE_V1"
-PRODUCER_VERSION = "0.2.1"
+PRODUCER_VERSION = "0.5.9"
+CAPTURE_MANIFEST_VERSION = "1.0.0"
 
 
 def _sha256_file(path):
@@ -27,12 +28,16 @@ def _build_hash_string():
     return str(value)
 
 
-def _optional_image_record(base_dir, filename, encoding, color_space, fmt="PNG", bit_depth=None):
-    path = os.path.join(base_dir, filename)
-    if not os.path.exists(path):
+def _rel_from_json(output_path, target_path):
+    base_dir = os.path.dirname(output_path)
+    return os.path.relpath(target_path, base_dir).replace(os.sep, "/")
+
+
+def _optional_image_record(path, relative_path, encoding, color_space, fmt="PNG", bit_depth=None):
+    if not path or not os.path.exists(path):
         return None
     record = {
-        "path": filename,
+        "path": relative_path,
         "sha256": _sha256_file(path),
         "format": fmt,
         "color_space": color_space,
@@ -60,12 +65,13 @@ def write_camera_json(
     scene,
     settings,
     view_id,
+    view_meta,
     capture_id,
     contract_info,
     geometry_camera_independent,
+    image_paths,
     extra_contract_errors=None,
 ):
-    base_dir = os.path.dirname(output_path)
     errors = list(extra_contract_errors or [])
 
     resolution = _final_resolution(scene)
@@ -104,9 +110,10 @@ def write_camera_json(
         if camera.get("resolution") != resolution:
             errors.append("RENDER camera resolution does not match final output resolution")
 
+    clay_path = image_paths.get("clay")
     clay = _optional_image_record(
-        base_dir,
-        "clay.png",
+        clay_path,
+        _rel_from_json(output_path, clay_path) if clay_path else None,
         encoding="CLAY_CAPTURE",
         color_space="SRGB",
         fmt="PNG",
@@ -115,17 +122,17 @@ def write_camera_json(
     if clay is None:
         errors.append("required images.clay is missing")
 
-    depth_raw_path = os.path.join(base_dir, "depth_raw.exr")
-    geometry_mask_path = os.path.join(base_dir, "geometry_mask.png")
-    if not os.path.exists(depth_raw_path):
+    depth_raw_path = image_paths.get("depth_raw")
+    geometry_mask_path = image_paths.get("geometry_mask")
+    if not depth_raw_path or not os.path.exists(depth_raw_path):
         errors.append("required images.depth_raw is missing")
-    if not os.path.exists(geometry_mask_path):
+    if not geometry_mask_path or not os.path.exists(geometry_mask_path):
         errors.append("required images.geometry_mask is missing")
 
     depth_raw = None
-    if os.path.exists(depth_raw_path):
+    if depth_raw_path and os.path.exists(depth_raw_path):
         depth_raw = {
-            "path": "depth_raw.exr",
+            "path": _rel_from_json(output_path, depth_raw_path),
             "sha256": contract_info.get("depth_sha256") or _sha256_file(depth_raw_path),
             "resolution": resolution,
             "format": "OPEN_EXR",
@@ -141,9 +148,9 @@ def write_camera_json(
         }
 
     geometry_mask = None
-    if os.path.exists(geometry_mask_path):
+    if geometry_mask_path and os.path.exists(geometry_mask_path):
         geometry_mask = {
-            "path": "geometry_mask.png",
+            "path": _rel_from_json(output_path, geometry_mask_path),
             "sha256": contract_info.get("mask_sha256") or _sha256_file(geometry_mask_path),
             "resolution": resolution,
             "format": "PNG",
@@ -192,11 +199,26 @@ def write_camera_json(
             "sensor_fit": camera.get("sensor_fit"),
         }
 
+    def optional_record(key, encoding, color_space, bit_depth):
+        path = image_paths.get(key)
+        return _optional_image_record(
+            path,
+            _rel_from_json(output_path, path) if path else None,
+            encoding,
+            color_space,
+            "PNG",
+            bit_depth,
+        )
+
     data = {
         "schema_version": SCHEMA_VERSION,
         "input_contract": INPUT_CONTRACT,
         "capture_id": capture_id,
         "view_id": view_id,
+        "view_index": int(view_meta.get("view_index", 1)),
+        "view_label": view_meta.get("view_label"),
+        "yaw_deg": view_meta.get("yaw_deg"),
+        "pitch_deg": view_meta.get("pitch_deg"),
         "coordinate_system": "BLENDER_RH_Z_UP_CAMERA_NEG_Z",
         "meters_per_world_unit": meters,
         "matrix_convention": "ROW_ARRAY_COLUMN_VECTOR",
@@ -236,15 +258,9 @@ def write_camera_json(
             "clay": clay,
             "depth_raw": depth_raw,
             "geometry_mask": geometry_mask,
-            "normal_comfy": _optional_image_record(
-                base_dir, "normal.png", "WORLD_NORMAL_ENCODED_0_1", "NON_COLOR", "PNG", 16
-            ),
-            "depth_normalized_comfy": _optional_image_record(
-                base_dir, "depth.png", "NORMALIZED_DEPTH_NEAR1_FAR0", "NON_COLOR", "PNG", 16
-            ),
-            "mask_comfy": _optional_image_record(
-                base_dir, "mask.png", "LEGACY_RENDER_ALPHA_MASK", "NON_COLOR", "PNG", 8
-            ),
+            "normal_comfy": optional_record("normal", "WORLD_NORMAL_ENCODED_0_1", "NON_COLOR", 16),
+            "depth_normalized_comfy": optional_record("depth", "NORMALIZED_DEPTH_NEAR1_FAR0_RGB_DUPLICATED", "NON_COLOR", 8),
+            "mask_comfy": optional_record("mask", "BINARY_MASK_RGB_DUPLICATED", "NON_COLOR", 8),
         },
         "texture_merge_v1_compatible": compatible,
         "contract_error": None if compatible else errors,
@@ -252,10 +268,17 @@ def write_camera_json(
             "viewtexforge": {
                 "target_mode": settings.target_mode,
                 "camera_mode": settings.camera_mode,
+                "auto_camera_view_count": int(settings.auto_camera_grid) if settings.camera_mode == "AUTO4" else None,
+                "auto_camera_grid": (
+                    {4: [2, 2], 6: [3, 2], 9: [3, 3], 12: [4, 3], 16: [4, 4]}.get(int(settings.auto_camera_grid))
+                    if settings.camera_mode == "AUTO4" else None
+                ),
                 "output_size_preset": settings.render_size_preset,
                 "clay_render_mode": settings.clay_render_mode,
                 "lighting_mode": settings.lighting_mode,
                 "camera_fit_margin": float(settings.camera_fit_margin)
+                    if settings.camera_mode == "AUTO4" else None,
+                "camera_fit_method": "EVALUATED_GEOMETRY_PROJECTED_BBOX"
                     if settings.camera_mode == "AUTO4" else None,
             }
         },
@@ -265,3 +288,52 @@ def write_camera_json(
         json.dump(data, handle, indent=4, ensure_ascii=False)
 
     return compatible, errors
+
+
+def write_capture_manifest(
+    output_path,
+    scene,
+    settings,
+    capture_id,
+    view_records,
+):
+    auto_view_count = int(settings.auto_camera_grid) if settings.camera_mode == "AUTO4" else None
+    auto_layout = {4: (2, 2), 6: (3, 2), 9: (3, 3), 12: (4, 3), 16: (4, 4)}.get(auto_view_count)
+    compatible_all = bool(view_records) and all(bool(v.get("texture_merge_v1_compatible")) for v in view_records)
+
+    data = {
+        "manifest_version": CAPTURE_MANIFEST_VERSION,
+        "capture_id": capture_id,
+        "producer": {
+            "name": "ViewTexForge",
+            "version": PRODUCER_VERSION,
+        },
+        "scene_name": scene.name,
+        "camera_mode": settings.camera_mode,
+        "view_count": len(view_records),
+        "grid_size": auto_layout[0] if auto_layout else None,
+        "grid_columns": auto_layout[0] if auto_layout else None,
+        "grid_rows": auto_layout[1] if auto_layout else None,
+        "primary_view_id": "view_0001" if view_records else None,
+        "sort_rule": "view_index_ascending_zero_padded_filename",
+        "file_naming": "view_XXXX",
+        "folders": {
+            "clay": "clay",
+            "normal": "normal",
+            "depth": "depth",
+            "mask": "mask",
+            "raw_depth": "raw_depth",
+            "geometry_mask": "geometry_mask",
+            "camera": "camera",
+        },
+        "comfyui": {
+            "list_loader_sort_method": "numerical",
+            "grid_size_from_view_count": "columns=ceil(sqrt(view_count)); rows=ceil(view_count/columns)",
+            "recommended_input_folders": ["clay", "depth", "mask"],
+        },
+        "texture_merge_v1_compatible": compatible_all,
+        "views": view_records,
+    }
+
+    with open(output_path, "w", encoding="utf-8") as handle:
+        json.dump(data, handle, indent=4, ensure_ascii=False)

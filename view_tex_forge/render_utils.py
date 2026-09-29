@@ -188,6 +188,67 @@ def _add_normal_remap_nodes(tree, normal_socket):
     return combine.outputs[0]
 
 
+def _quantize_unit_to_8bit(value):
+    """Quantize a normalized scalar to 8-bit and return a normalized float."""
+    value = max(0.0, min(1.0, float(value)))
+    return round(value * 255.0) / 255.0
+
+
+def _save_scalar_png_as_rgb_png(source_path, target_path, *, quantize_to_8bit=True, binary_threshold=None):
+    """Rewrite a scalar PNG as an RGB PNG by duplicating the scalar into R/G/B.
+
+    This is used only for the ComfyUI-facing helper exports. The original
+    capture semantics are preserved for Texture Merge via depth_raw.exr and the
+    contract-side geometry mask, which are not modified here.
+    """
+    src = bpy.data.images.load(source_path, check_existing=False)
+    dst = None
+    try:
+        try:
+            src.colorspace_settings.name = 'Non-Color'
+        except Exception:
+            pass
+
+        width, height = src.size
+        src_pixels = list(src.pixels[:])
+        dst_pixels = []
+        append = dst_pixels.extend
+
+        for index in range(0, len(src_pixels), 4):
+            value = src_pixels[index]
+            if binary_threshold is not None:
+                value = 1.0 if value >= float(binary_threshold) else 0.0
+            elif quantize_to_8bit:
+                value = _quantize_unit_to_8bit(value)
+            else:
+                value = max(0.0, min(1.0, float(value)))
+            append((value, value, value, 1.0))
+
+        dst = bpy.data.images.new(
+            name='__ViewTexForgeRGBExport__',
+            width=width,
+            height=height,
+            alpha=False,
+            float_buffer=False,
+        )
+        try:
+            dst.colorspace_settings.name = 'Non-Color'
+        except Exception:
+            pass
+        dst.alpha_mode = 'NONE'
+        dst.pixels = dst_pixels
+        dst.filepath_raw = target_path
+        dst.file_format = 'PNG'
+
+        if os.path.exists(target_path):
+            os.remove(target_path)
+        dst.save()
+    finally:
+        if src is not None:
+            bpy.data.images.remove(src)
+        if dst is not None:
+            bpy.data.images.remove(dst)
+
 
 # -----------------------------------------------------------------------------
 # Lit clay helpers
@@ -465,10 +526,16 @@ def render_mask_pass(scene, cam_obj, output_path):
             scene=scene.name,
         )
 
-    _rename_file_output(
+    final_path = _rename_file_output(
         os.path.dirname(output_path),
         prefix,
         os.path.basename(output_path),
+    )
+    _save_scalar_png_as_rgb_png(
+        final_path,
+        final_path,
+        quantize_to_8bit=False,
+        binary_threshold=0.5,
     )
 
 
@@ -524,8 +591,14 @@ def render_depth_pass(scene, cam_obj, output_path, depth_near, depth_far):
     finally:
         view_layer.use_pass_z = old_z_pass
 
-    _rename_file_output(
+    final_path = _rename_file_output(
         os.path.dirname(output_path),
         prefix,
         os.path.basename(output_path),
+    )
+    _save_scalar_png_as_rgb_png(
+        final_path,
+        final_path,
+        quantize_to_8bit=True,
+        binary_threshold=None,
     )

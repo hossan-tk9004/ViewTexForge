@@ -17,7 +17,7 @@ _ACTIVE_WORKERS = {}
 class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
     bl_idname = "viewtexforge.comfyui_generate"
     bl_label = "Generate with ComfyUI"
-    bl_description = "Run the configured ComfyUI workflow using the latest ViewTexForge 4-view capture"
+    bl_description = "Run the configured ComfyUI workflow using the latest ViewTexForge capture folders"
 
     _timer = None
     _events = None
