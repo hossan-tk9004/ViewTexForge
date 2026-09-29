@@ -70,5 +70,9 @@ def merge(snapshot, views, settings):
                                   depth_sigma_scale_px=settings.depth_sigma_scale_px if settings.depth_tolerance_mode == "AUTO" else None,
                                   depth_cutoff_scale_px=settings.depth_cutoff_scale_px if settings.depth_tolerance_mode == "AUTO" else None,
                                   manual_depth_sigma_m=settings.depth_sigma_m if settings.depth_tolerance_mode == "MANUAL" else None,
-                                  manual_depth_cutoff_m=settings.depth_cutoff_m if settings.depth_tolerance_mode == "MANUAL" else None))
+                                  manual_depth_cutoff_m=settings.depth_cutoff_m if settings.depth_tolerance_mode == "MANUAL" else None,
+                                  mask_boundary_penalty_enabled=settings.mask_boundary_penalty_enabled,
+                                  mask_edge_start_px=settings.mask_edge_start_px if settings.mask_boundary_penalty_enabled else None,
+                                  mask_edge_full_px=settings.mask_edge_full_px if settings.mask_boundary_penalty_enabled else None,
+                                  mask_edge_gamma=settings.mask_edge_gamma if settings.mask_boundary_penalty_enabled else None))
     return result

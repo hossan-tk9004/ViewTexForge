@@ -459,6 +459,33 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         min=0.000000001,
         precision=6,
     )
+    texture_merge_mask_boundary_penalty_enabled: BoolProperty(
+        name="Mask Boundary Penalty",
+        description="Reduce merge weight near geometry-mask boundaries to suppress occlusion/silhouette color leakage",
+        default=True,
+    )
+    texture_merge_mask_edge_start_px: FloatProperty(
+        name="Mask Edge Start (px)",
+        description="Boundary distance at or below which the mask-edge confidence is zero",
+        default=0.5,
+        min=0.0,
+        precision=3,
+    )
+    texture_merge_mask_edge_full_px: FloatProperty(
+        name="Mask Edge Full (px)",
+        description="Boundary distance at or above which the mask-edge confidence reaches one",
+        default=3.0,
+        min=0.001,
+        precision=3,
+    )
+    texture_merge_mask_edge_gamma: FloatProperty(
+        name="Mask Edge Gamma",
+        description="Shape of the mask-boundary confidence transition; 1.0 keeps the default smoothstep curve",
+        default=1.0,
+        min=0.000001,
+        precision=3,
+    )
+
     texture_merge_facing_exponent: FloatProperty(
         name="Facing Exponent",
         default=4.0,

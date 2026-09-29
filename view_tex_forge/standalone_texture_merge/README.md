@@ -123,6 +123,16 @@ Depth非有限／0以下、`delta >= depth_cutoff_m`ではw=0です。
 ColorはGeometry NormalでFacing Gateをかけるため、カメラから見た裏面は寄与0です。
 `view_priority`は全Viewデフォルト1.0です。名前がfrontでも特別扱いしません。
 
+### Phase 1: Mask Boundary Penalty
+
+`mask_boundary_penalty_enabled=true`（既定）では、各CaptureのGeometry Maskから
+境界までの近似pixel距離を計算し、境界付近のColor Weightだけを滑らかに減衰します。
+Depth/visibilityの有効判定そのものは変更しません。既定は
+`mask_edge_start_px=0.5`、`mask_edge_full_px=3.0`、`mask_edge_gamma=1.0`です。
+有効pixel中心が境界に接する最外周はconfidence 0、Full距離以上では1になります。
+これは遮蔽・シルエット境界での隣接Surfaceからの色漏れを抑えるためのPhase 1実装です。
+Depth Edge Penalty / Visibility Clearance / Top-K View Selectionはまだ含みません。
+
 各UV texelの中心を三角形の重心座標でラスタライズします。三角形のWorld Positionと
 Average Normalを補間し、各カメラに投影して加重平均します。UV重複と共有辺は
 **最小のevaluated loop_triangle indexを所有者**とする固定ルールです。

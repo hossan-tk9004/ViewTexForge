@@ -230,3 +230,11 @@ Version 0.5.9
 - Auto Camera layouts are now 4 / 6 / 9 / 12 / 16.
 - 9-camera mode uses the legacy 3x3 layout: eight horizontal views plus Top.
 - The projected 2D BBox orthographic fit remains active for all auto-camera layouts, including 9 and 16.
+
+
+Version 0.5.10
+- Added Phase 1 occlusion handling for Texture Merge: Mask Boundary Penalty.
+- Merge weight is softly reduced near geometry-mask boundaries to suppress color leakage at silhouettes and occlusion edges.
+- Added Advanced controls: enable/disable, edge start distance, full-confidence distance, and gamma.
+- Default test values: Start 0.5 px, Full 3.0 px, Gamma 1.0.
+- No Depth Edge Penalty, Visibility Clearance, or Top-K selection is included yet; those remain later test phases.

@@ -12,6 +12,7 @@ from standalone_texture_merge.projection import project, sample_weight, pixel_fo
 from standalone_texture_merge.uv_rasterizer import rasterize
 from standalone_texture_merge.uv_padding import pad
 from standalone_texture_merge.image_io import write_png
+from standalone_texture_merge.occlusion import mask_boundary_distance_px, mask_boundary_confidence
 
 
 def mesh():
@@ -34,6 +35,7 @@ def view(name="front", rgb=(0.2,0.4,0.8), size=(8,8)):
 
 class CoreTests(unittest.TestCase):
     def settings(self, **kw):
+        kw.setdefault("mask_boundary_penalty_enabled", False)
         return Settings(resolution=(8,8),padding_radius=0,**kw)
 
     def test_encoded_blend_and_default_view_priority(self):
@@ -148,6 +150,31 @@ class CoreTests(unittest.TestCase):
         direct=np.array([[True,False,False,False,True]])
         result,_=pad(rgb,direct,direct,np.array([[3,-1,-1,-1,1]]),2)
         np.testing.assert_array_equal(result[0,2],(0,0,1))
+
+    def test_mask_boundary_distance_and_confidence(self):
+        mask=np.ones((7,7),bool)
+        dist=mask_boundary_distance_px(mask,3.0)
+        self.assertAlmostEqual(float(dist[0,0]),0.5)
+        self.assertAlmostEqual(float(dist[1,1]),1.5)
+        self.assertAlmostEqual(float(dist[3,3]),3.0)
+        conf,_=mask_boundary_confidence(mask,0.5,3.0,1.0)
+        self.assertAlmostEqual(float(conf[0,0]),0.0)
+        self.assertGreater(float(conf[1,1]),0.0)
+        self.assertLess(float(conf[1,1]),1.0)
+        self.assertAlmostEqual(float(conf[3,3]),1.0)
+
+    def test_mask_boundary_penalty_reduces_edge_weight_only(self):
+        v=view(size=(8,8))
+        raster=dict(points=np.array([[-0.875,0.875,-1.0],[0,0,-1.0]]),
+                    normals=np.array([[0,0,1.0],[0,0,1.0]]),
+                    face_normals=np.array([[0,0,1.0],[0,0,1.0]]))
+        settings=self.settings(depth_tolerance_mode="MANUAL",mask_boundary_penalty_enabled=True)
+        _,w=sample_weight(raster,v,settings)
+        self.assertAlmostEqual(float(w[0]),0.0)
+        self.assertGreater(float(w[1]),0.99)
+        _,base=sample_weight(raster,v,self.settings(depth_tolerance_mode="MANUAL",mask_boundary_penalty_enabled=False))
+        self.assertGreater(float(base[0]),0.99)
+        self.assertGreater(float(base[1]),0.99)
 
     def test_png_encoding_roundtrip(self):
         from PIL import Image

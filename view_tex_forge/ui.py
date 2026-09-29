@@ -25,7 +25,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.5.9")
+        layout.label(text="Version 0.5.10")
         layout.separator()
 
         save = layout.box()
@@ -167,6 +167,13 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
                 advanced = merge.box()
                 advanced.prop(settings, 'texture_merge_facing_exponent')
                 advanced.prop(settings, 'texture_merge_face_gate_gain')
+                advanced.separator()
+                advanced.prop(settings, 'texture_merge_mask_boundary_penalty_enabled')
+                if settings.texture_merge_mask_boundary_penalty_enabled:
+                    advanced.prop(settings, 'texture_merge_mask_edge_start_px')
+                    advanced.prop(settings, 'texture_merge_mask_edge_full_px')
+                    advanced.prop(settings, 'texture_merge_mask_edge_gamma')
+                advanced.separator()
                 advanced.prop(settings, 'texture_merge_padding_radius')
                 advanced.prop(settings, 'texture_merge_png_bit_depth')
                 advanced.prop(settings, 'texture_merge_debug_output')

@@ -1,5 +1,6 @@
 import numpy as np
 from .uv_rasterizer import normalize
+from .occlusion import view_mask_boundary_confidence
 
 
 def project(points, metadata):
@@ -85,7 +86,16 @@ def sample_weight(raster, view, settings):
     # surface only. COLOR is strictly front-facing: backside weight is zero.
     face_gate = np.clip((raster["face_normals"] @ direction) * settings.face_gate_gain, 0, 1)
     weight = np.zeros(len(raw), np.float64)
-    weight[valid] = (settings.view_priority.get(view.view_id, 1.0)
-                     * facing[valid] ** settings.facing_exponent * face_gate[valid]
-                     * np.exp(-(delta[valid]/depth_sigma_m)**2))
+    if valid.any():
+        base = (settings.view_priority.get(view.view_id, 1.0)
+                * facing[valid] ** settings.facing_exponent * face_gate[valid]
+                * np.exp(-(delta[valid]/depth_sigma_m)**2))
+        if settings.mask_boundary_penalty_enabled:
+            # Soft confidence from the capture geometry-mask boundary. This does
+            # not alter visibility/depth validity; it only lowers color weight
+            # for samples near silhouette/occlusion boundaries where tiny image
+            # misregistration can pull color from a neighbouring surface.
+            confidence = view_mask_boundary_confidence(view, settings)[iy[valid], ix[valid]]
+            base *= confidence
+        weight[valid] = base
     return view.color[iy, ix], weight

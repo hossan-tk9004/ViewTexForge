@@ -17,6 +17,13 @@ class Settings:
     depth_sigma_m: float = 0.0012
     depth_cutoff_m: float = 0.003
 
+    # Phase 1 occlusion handling: reduce color contribution close to the
+    # geometry-mask silhouette/boundary. This is a soft penalty, not a reject.
+    mask_boundary_penalty_enabled: bool = True
+    mask_edge_start_px: float = 0.5
+    mask_edge_full_px: float = 3.0
+    mask_edge_gamma: float = 1.0
+
     min_weight_sum: float = 0.00001
     view_priority: dict = field(default_factory=dict)
     padding_radius: int = 16
@@ -39,11 +46,16 @@ class Settings:
             "depth_cutoff_scale_px",
             "depth_sigma_m",
             "depth_cutoff_m",
+            "mask_edge_gamma",
             "min_weight_sum",
         ):
             value = getattr(self, key)
             if not math.isfinite(value) or value <= 0:
                 raise ValueError(f"{key} must be positive and finite")
+        if not math.isfinite(self.mask_edge_start_px) or self.mask_edge_start_px < 0:
+            raise ValueError("mask_edge_start_px must be nonnegative and finite")
+        if not math.isfinite(self.mask_edge_full_px) or self.mask_edge_full_px <= self.mask_edge_start_px:
+            raise ValueError("mask_edge_full_px must be finite and greater than mask_edge_start_px")
         if any(not math.isfinite(v) or v < 0 for v in self.view_priority.values()):
             raise ValueError("view_priority must be nonnegative and finite")
         if type(self.padding_radius) is not int or self.padding_radius < 0:
