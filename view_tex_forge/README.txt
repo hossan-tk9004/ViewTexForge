@@ -237,4 +237,12 @@ Version 0.5.10
 - Merge weight is softly reduced near geometry-mask boundaries to suppress color leakage at silhouettes and occlusion edges.
 - Added Advanced controls: enable/disable, edge start distance, full-confidence distance, and gamma.
 - Default test values: Start 0.5 px, Full 3.0 px, Gamma 1.0.
-- No Depth Edge Penalty, Visibility Clearance, or Top-K selection is included yet; those remain later test phases.
+
+Version 0.5.11
+- Added Phase 2 occlusion handling for Texture Merge: Depth Edge Penalty, layered on top of Mask Boundary Penalty.
+- Raw CAMERA_Z is scanned in a 3x3 neighbourhood inside the valid geometry mask; large internal depth discontinuities reduce that view's color weight.
+- Background/invalid neighbours are ignored so this complements, rather than duplicates, Mask Boundary Penalty.
+- Thresholds scale automatically from each view's world-space pixel footprint.
+- Added Advanced controls: Depth Edge Penalty, Sigma (px), Full (px), and Gamma.
+- Default test values: Sigma 0.5 px, Full 1.5 px, Gamma 1.0.
+- Visibility Clearance and Top-K selection remain later test phases.

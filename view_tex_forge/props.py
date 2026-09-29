@@ -485,6 +485,32 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         min=0.000001,
         precision=3,
     )
+    texture_merge_depth_edge_penalty_enabled: BoolProperty(
+        name="Depth Edge Penalty",
+        description="Reduce merge weight near internal raw-depth discontinuities such as eyelid/eyeball or ear cavities",
+        default=True,
+    )
+    texture_merge_depth_edge_sigma_scale_px: FloatProperty(
+        name="Depth Edge Sigma (px)",
+        description="Gaussian depth-edge penalty scale in capture-pixel footprints",
+        default=0.5,
+        min=0.000001,
+        precision=3,
+    )
+    texture_merge_depth_edge_full_scale_px: FloatProperty(
+        name="Depth Edge Full (px)",
+        description="Depth discontinuity at or above this capture-pixel scale receives zero confidence for that view",
+        default=1.5,
+        min=0.000001,
+        precision=3,
+    )
+    texture_merge_depth_edge_gamma: FloatProperty(
+        name="Depth Edge Gamma",
+        description="Strength/shape of the depth-edge confidence; values above 1 penalize discontinuities more strongly",
+        default=1.0,
+        min=0.000001,
+        precision=3,
+    )
 
     texture_merge_facing_exponent: FloatProperty(
         name="Facing Exponent",

@@ -74,5 +74,9 @@ def merge(snapshot, views, settings):
                                   mask_boundary_penalty_enabled=settings.mask_boundary_penalty_enabled,
                                   mask_edge_start_px=settings.mask_edge_start_px if settings.mask_boundary_penalty_enabled else None,
                                   mask_edge_full_px=settings.mask_edge_full_px if settings.mask_boundary_penalty_enabled else None,
-                                  mask_edge_gamma=settings.mask_edge_gamma if settings.mask_boundary_penalty_enabled else None))
+                                  mask_edge_gamma=settings.mask_edge_gamma if settings.mask_boundary_penalty_enabled else None,
+                                  depth_edge_penalty_enabled=settings.depth_edge_penalty_enabled,
+                                  depth_edge_sigma_scale_px=settings.depth_edge_sigma_scale_px if settings.depth_edge_penalty_enabled else None,
+                                  depth_edge_full_scale_px=settings.depth_edge_full_scale_px if settings.depth_edge_penalty_enabled else None,
+                                  depth_edge_gamma=settings.depth_edge_gamma if settings.depth_edge_penalty_enabled else None))
     return result

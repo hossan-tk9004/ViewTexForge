@@ -19,5 +19,9 @@
   "mask_boundary_penalty_enabled": true,
   "mask_edge_start_px": 0.5,
   "mask_edge_full_px": 3.0,
-  "mask_edge_gamma": 1.0
+  "mask_edge_gamma": 1.0,
+  "depth_edge_penalty_enabled": true,
+  "depth_edge_sigma_scale_px": 0.5,
+  "depth_edge_full_scale_px": 1.5,
+  "depth_edge_gamma": 1.0
 }

@@ -111,6 +111,11 @@ depth_cutoff_m = pixel_footprint_m * 1.70
 w = view_priority * a^4 * g * exp(-(delta / depth_sigma_m)^2)
 ```
 
+Occlusion quality weightingは段階的に適用できます。Phase 1の`Mask Boundary Penalty`は
+Geometry Mask外周付近の寄与を抑え、Phase 2の`Depth Edge Penalty`はRaw CAMERA_Zの
+3x3近傍にある内部深度不連続を検出して寄与を抑えます。Depth Edgeの閾値は各Viewの
+pixel footprint基準で、既定は`Sigma=0.5px`、`Full=1.5px`、`Gamma=1.0`です。
+
 Depth toleranceは既定で`AUTO`です。保存済みORTHO projection matrixから各Viewの
 1pixel相当のworld footprintをメートルで求め、`depth_sigma_scale_px=0.65`、
 `depth_cutoff_scale_px=1.70`を掛けます。これによりCaptureのスケールや解像度が変わっても、

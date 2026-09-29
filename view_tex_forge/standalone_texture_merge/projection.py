@@ -1,6 +1,6 @@
 import numpy as np
 from .uv_rasterizer import normalize
-from .occlusion import view_mask_boundary_confidence
+from .occlusion import view_mask_boundary_confidence, view_depth_edge_confidence
 
 
 def project(points, metadata):
@@ -91,11 +91,17 @@ def sample_weight(raster, view, settings):
                 * facing[valid] ** settings.facing_exponent * face_gate[valid]
                 * np.exp(-(delta[valid]/depth_sigma_m)**2))
         if settings.mask_boundary_penalty_enabled:
-            # Soft confidence from the capture geometry-mask boundary. This does
-            # not alter visibility/depth validity; it only lowers color weight
-            # for samples near silhouette/occlusion boundaries where tiny image
-            # misregistration can pull color from a neighbouring surface.
+            # Phase 1: lower weight near the geometry-mask silhouette/boundary.
             confidence = view_mask_boundary_confidence(view, settings)[iy[valid], ix[valid]]
+            base *= confidence
+        if settings.depth_edge_penalty_enabled:
+            # Phase 2: lower weight near *internal* metric-depth discontinuities.
+            # Invalid/background neighbours are ignored by the depth-edge metric,
+            # so this complements rather than duplicates the mask-boundary term.
+            _, _, footprint_m = resolve_depth_tolerance(view.metadata, settings)
+            if footprint_m is None:
+                footprint_m = pixel_footprint_m(view.metadata)
+            confidence = view_depth_edge_confidence(view, settings, footprint_m)[iy[valid], ix[valid]]
             base *= confidence
         weight[valid] = base
     return view.color[iy, ix], weight

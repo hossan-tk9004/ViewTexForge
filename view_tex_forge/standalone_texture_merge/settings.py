@@ -24,6 +24,14 @@ class Settings:
     mask_edge_full_px: float = 3.0
     mask_edge_gamma: float = 1.0
 
+    # Phase 2 occlusion handling: reduce contribution where raw CAMERA_Z has a
+    # strong local discontinuity inside the valid geometry mask. Thresholds are
+    # expressed in capture-pixel footprints and resolved per view.
+    depth_edge_penalty_enabled: bool = True
+    depth_edge_sigma_scale_px: float = 0.5
+    depth_edge_full_scale_px: float = 1.5
+    depth_edge_gamma: float = 1.0
+
     min_weight_sum: float = 0.00001
     view_priority: dict = field(default_factory=dict)
     padding_radius: int = 16
@@ -47,6 +55,9 @@ class Settings:
             "depth_sigma_m",
             "depth_cutoff_m",
             "mask_edge_gamma",
+            "depth_edge_sigma_scale_px",
+            "depth_edge_full_scale_px",
+            "depth_edge_gamma",
             "min_weight_sum",
         ):
             value = getattr(self, key)
@@ -56,6 +67,8 @@ class Settings:
             raise ValueError("mask_edge_start_px must be nonnegative and finite")
         if not math.isfinite(self.mask_edge_full_px) or self.mask_edge_full_px <= self.mask_edge_start_px:
             raise ValueError("mask_edge_full_px must be finite and greater than mask_edge_start_px")
+        if self.depth_edge_full_scale_px <= self.depth_edge_sigma_scale_px:
+            raise ValueError("depth_edge_full_scale_px must be greater than depth_edge_sigma_scale_px")
         if any(not math.isfinite(v) or v < 0 for v in self.view_priority.values()):
             raise ValueError("view_priority must be nonnegative and finite")
         if type(self.padding_radius) is not int or self.padding_radius < 0:

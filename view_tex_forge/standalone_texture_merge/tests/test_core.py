@@ -12,7 +12,7 @@ from standalone_texture_merge.projection import project, sample_weight, pixel_fo
 from standalone_texture_merge.uv_rasterizer import rasterize
 from standalone_texture_merge.uv_padding import pad
 from standalone_texture_merge.image_io import write_png
-from standalone_texture_merge.occlusion import mask_boundary_distance_px, mask_boundary_confidence
+from standalone_texture_merge.occlusion import mask_boundary_distance_px, mask_boundary_confidence, depth_edge_metric_m, depth_edge_confidence
 
 
 def mesh():
@@ -36,6 +36,7 @@ def view(name="front", rgb=(0.2,0.4,0.8), size=(8,8)):
 class CoreTests(unittest.TestCase):
     def settings(self, **kw):
         kw.setdefault("mask_boundary_penalty_enabled", False)
+        kw.setdefault("depth_edge_penalty_enabled", False)
         return Settings(resolution=(8,8),padding_radius=0,**kw)
 
     def test_encoded_blend_and_default_view_priority(self):
@@ -175,6 +176,44 @@ class CoreTests(unittest.TestCase):
         _,base=sample_weight(raster,v,self.settings(depth_tolerance_mode="MANUAL",mask_boundary_penalty_enabled=False))
         self.assertGreater(float(base[0]),0.99)
         self.assertGreater(float(base[1]),0.99)
+
+    def test_depth_edge_metric_ignores_background_but_detects_internal_step(self):
+        depth=np.ones((5,5),np.float32)
+        mask=np.ones((5,5),bool)
+        depth[:,3:]=2.0
+        metric=depth_edge_metric_m(depth,mask)
+        self.assertAlmostEqual(float(metric[2,2]),1.0)
+        self.assertAlmostEqual(float(metric[2,3]),1.0)
+        self.assertAlmostEqual(float(metric[2,0]),0.0)
+        # Background neighbour must not be treated as an internal metric edge.
+        mask[:,4]=False
+        depth[:,4]=0.0
+        metric=depth_edge_metric_m(depth,mask)
+        self.assertAlmostEqual(float(metric[2,3]),1.0)
+
+    def test_depth_edge_confidence_and_weight_penalty(self):
+        depth=np.ones((8,8),np.float32)
+        mask=np.ones((8,8),bool)
+        depth[:,4:]=1.2
+        conf,metric,sigma,full=depth_edge_confidence(depth,mask,0.1,0.5,1.5,1.0)
+        self.assertAlmostEqual(float(metric[4,3]),0.2,places=6)
+        self.assertAlmostEqual(float(conf[4,3]),0.0,places=6)
+        self.assertAlmostEqual(float(conf[4,0]),1.0,places=6)
+        self.assertAlmostEqual(sigma,0.05)
+        self.assertAlmostEqual(full,0.15)
+
+        v=view(size=(8,8))
+        v.depth=depth.copy()
+        # Choose samples mapping to x=3 and x=1; predicted depth remains 1m.
+        raster=dict(points=np.array([[-0.125,0,-1.0],[-0.625,0,-1.0]]),
+                    normals=np.array([[0,0,1.0],[0,0,1.0]]),
+                    face_normals=np.array([[0,0,1.0],[0,0,1.0]]))
+        settings=self.settings(depth_tolerance_mode="MANUAL", depth_sigma_m=1.0, depth_cutoff_m=1.0,
+                               depth_edge_penalty_enabled=True, depth_edge_sigma_scale_px=0.5,
+                               depth_edge_full_scale_px=1.5)
+        _,w=sample_weight(raster,v,settings)
+        self.assertLess(float(w[0]),0.1)
+        self.assertGreater(float(w[1]),0.99)
 
     def test_png_encoding_roundtrip(self):
         from PIL import Image
