@@ -105,9 +105,17 @@ def _auto_view_definitions(view_count):
         ]
 
     if view_count == 9:
-        # Legacy 9-view set restored for validation: eight horizontal views plus Top.
-        return equator + [
-            ("Top", 0.0, 90.0),
+        # Symmetric 9-view set: Front plus four upper diagonals and four lower diagonals.
+        return [
+            ("Front", 0.0, 0.0),
+            ("UpperFrontLeft", 315.0, 40.0),
+            ("UpperFrontRight", 45.0, 40.0),
+            ("UpperBackLeft", 225.0, 40.0),
+            ("UpperBackRight", 135.0, 40.0),
+            ("LowerFrontLeft", 315.0, -30.0),
+            ("LowerFrontRight", 45.0, -30.0),
+            ("LowerBackLeft", 225.0, -30.0),
+            ("LowerBackRight", 135.0, -30.0),
         ]
 
     if view_count == 12:
