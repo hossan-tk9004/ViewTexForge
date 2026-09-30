@@ -173,7 +173,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         items=[
             ('4', '2 x 2 (4 Cameras)', 'Front / Right / Back / Left'),
             ('6', '3 x 2 (6 Cameras)', 'Front / Right / Back / Left / Top / Bottom'),
-            ('9', '3 x 3 (9 Cameras)', 'Front plus four upper diagonals and four lower diagonals'),
+            ('9', '3 x 3 (9 Cameras)', 'Front / Right / Back / Left / Top / Bottom / slightly elevated Front-Right / Front-Left / Lower-Front'),
             ('12', '4 x 3 (12 Cameras)', '4 horizontal, 4 upper-diagonal, and 4 lower-cardinal views'),
             ('16', '4 x 4 (16 Cameras)', 'Legacy 16-view set: 8 horizontal, 4 upper-cardinal, and 4 lower-diagonal views'),
         ],

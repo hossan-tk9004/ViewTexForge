@@ -236,3 +236,15 @@ Version 0.5.10
 - Updated the 9-camera Auto Camera layout to a left/right symmetric arrangement.
 - 9-camera mode now uses Front plus four upper diagonal views at pitch +40 degrees and four lower diagonal views at pitch -30 degrees.
 - Projected 2D BBox fitting remains active for all nine cameras.
+
+
+Version 0.5.11
+- Reworked the 9-camera Auto Camera layout to an axis-heavy validation set.
+- 9-camera mode is now Front / Right / Back / Left / Top / Bottom / Front-Right / Front-Left / Lower-Front.
+- The projected 2D BBox orthographic fitting remains active for the updated 9-camera layout.
+
+
+Version 0.5.12
+- Adjusted the 9-camera Front-Right and Front-Left views from pitch 0 degrees to pitch +15 degrees.
+- Other 9-camera angles remain unchanged, including Lower-Front at pitch -30 degrees.
+- Projected 2D BBox orthographic fitting remains active.

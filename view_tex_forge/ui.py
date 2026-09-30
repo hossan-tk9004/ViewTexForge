@@ -25,7 +25,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.5.10")
+        layout.label(text="Version 0.5.12")
         layout.separator()
 
         save = layout.box()

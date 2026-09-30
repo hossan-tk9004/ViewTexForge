@@ -105,17 +105,18 @@ def _auto_view_definitions(view_count):
         ]
 
     if view_count == 9:
-        # Symmetric 9-view set: Front plus four upper diagonals and four lower diagonals.
+        # Axis-heavy 9-view validation set: six orthogonal directions plus
+        # horizontal front diagonals and one lower-front view.
         return [
             ("Front", 0.0, 0.0),
-            ("UpperFrontLeft", 315.0, 40.0),
-            ("UpperFrontRight", 45.0, 40.0),
-            ("UpperBackLeft", 225.0, 40.0),
-            ("UpperBackRight", 135.0, 40.0),
-            ("LowerFrontLeft", 315.0, -30.0),
-            ("LowerFrontRight", 45.0, -30.0),
-            ("LowerBackLeft", 225.0, -30.0),
-            ("LowerBackRight", 135.0, -30.0),
+            ("Right", 90.0, 0.0),
+            ("Back", 180.0, 0.0),
+            ("Left", 270.0, 0.0),
+            ("Top", 0.0, 90.0),
+            ("Bottom", 0.0, -90.0),
+            ("FrontRight", 45.0, 15.0),
+            ("FrontLeft", 315.0, 15.0),
+            ("LowerFront", 0.0, -30.0),
         ]
 
     if view_count == 12:
