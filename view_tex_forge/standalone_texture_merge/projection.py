@@ -64,7 +64,7 @@ def resolve_depth_tolerance(metadata, settings):
     return float(sigma), float(cutoff), float(footprint)
 
 
-def sample_weight(raster, view, settings):
+def sample_weight(raster, view, settings, visibility=None, return_diagnostics=False):
     xy, depth_bu, direction = project(raster["points"], view.metadata)
     height, width = view.depth.shape
     finite = np.isfinite(xy).all(axis=1) & np.isfinite(depth_bu)
@@ -74,12 +74,12 @@ def sample_weight(raster, view, settings):
     iy = np.floor(np.clip(safe_xy[:, 1], 0, height-1)).astype(int)
     raw = view.depth[iy, ix]
     camera = view.metadata["camera"]
-    valid = (inframe & view.geometry_mask[iy, ix] & view.color_valid_mask[iy, ix]
+    image_valid = (inframe & view.geometry_mask[iy, ix] & view.color_valid_mask[iy, ix]
              & np.isfinite(raw) & (raw > 0)
              & (depth_bu >= camera["clip_start"]) & (depth_bu <= camera["clip_end"]))
     delta = np.abs(raw - depth_bu * view.metadata["meters_per_world_unit"])
     depth_sigma_m, depth_cutoff_m, _ = resolve_depth_tolerance(view.metadata, settings)
-    valid &= delta < depth_cutoff_m
+    valid = image_valid & (delta < depth_cutoff_m)
     facing = np.clip(raster["normals"] @ direction, 0, 1)
     # OPAQUE_DOUBLE_SIDED_TRIANGLES describes the captured depth/occlusion
     # surface only. COLOR is strictly front-facing: backside weight is zero.
@@ -88,4 +88,19 @@ def sample_weight(raster, view, settings):
     weight[valid] = (settings.view_priority.get(view.view_id, 1.0)
                      * facing[valid] ** settings.facing_exponent * face_gate[valid]
                      * np.exp(-(delta[valid]/depth_sigma_m)**2))
+    legacy_accepted = weight > settings.min_weight_sum
+    if visibility is not None:
+        if visibility.shape != weight.shape or visibility.dtype != np.dtype(bool):
+            raise ValueError("STRICT visibility mask must be boolean and match the UV point count")
+        weight[~visibility] = 0.0
+    if return_diagnostics:
+        report = dict(
+            image_or_clip_rejected=int((~image_valid).sum()),
+            depth_rejected=int((image_valid & ~valid).sum()),
+            legacy_candidates=int(legacy_accepted.sum()),
+            geometry_rejected=int((legacy_accepted & ~visibility).sum()) if visibility is not None else 0,
+            visible_depth_rejected=int((visibility & image_valid & ~valid).sum()) if visibility is not None else 0,
+            retained_candidates=int((weight > settings.min_weight_sum).sum()),
+        )
+        return view.color[iy, ix], weight, report
     return view.color[iy, ix], weight

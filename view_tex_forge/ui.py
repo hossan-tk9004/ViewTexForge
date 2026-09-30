@@ -142,6 +142,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
 
         merge = layout.box()
         if _foldout_header(merge, settings, 'show_texture_merge_settings', 'Texture Merge Settings'):
+            merge.prop(settings, 'texture_merge_visibility_mode')
             merge.separator()
             merge.prop(settings, 'texture_merge_resolution')
             merge.prop(settings, 'texture_merge_depth_tolerance_mode')

@@ -129,6 +129,7 @@ def settings_from_scene(scene):
         view_priority={},
         padding_radius=int(s.texture_merge_padding_radius),
         png_bit_depth=int(s.texture_merge_png_bit_depth),
+        visibility_mode=s.texture_merge_visibility_mode,
     )
 
 
@@ -148,6 +149,7 @@ def settings_dict(settings):
         'view_priority': settings.view_priority,
         'padding_radius': settings.padding_radius,
         'png_bit_depth': settings.png_bit_depth,
+        'visibility_mode': settings.visibility_mode,
     }
 
 

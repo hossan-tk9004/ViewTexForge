@@ -21,10 +21,12 @@ def save_result(result, output_root, snapshot, settings, scene):
     if settings.debug_output:
         debug = directory/"debug"
         debug.mkdir(exist_ok=True)
-        for name in ("direct_coverage", "padding_area"):
+        for name in ("direct_coverage", "padding_area", "unobserved"):
             write_png(debug/f"{name}.png", result[name])
         write_exr(debug/"weight_sum.exr", result["weight_sum"], scene)
+        write_exr(debug/"confidence_max.exr", result["confidence_max"], scene)
         # NPY retains arbitrary view counts exactly, unlike normalized PNG.
         np.save(debug/"dominant_view.npy", result["dominant_view"], allow_pickle=False)
+        np.save(debug/"candidate_count.npy", result["candidate_count"], allow_pickle=False)
         (debug/"merge_report.json").write_text(json.dumps(result["report"], indent=2), encoding="utf-8")
     return directory/"basecolor.png"

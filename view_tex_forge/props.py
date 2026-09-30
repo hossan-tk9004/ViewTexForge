@@ -437,6 +437,15 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         ],
         default='AUTO',
     )
+    texture_merge_visibility_mode: EnumProperty(
+        name="Visibility",
+        description="Strict ray visibility rejects colors from geometrically occluded surfaces",
+        items=[
+            ('LEGACY', 'Legacy Depth', 'Use the original depth-weighted merge'),
+            ('STRICT', 'Strict Ray', 'Require a matching first surface hit before color blending'),
+        ],
+        default='LEGACY',
+    )
     texture_merge_depth_sigma_scale_px: FloatProperty(
         name="Depth Sigma Scale (px)",
         default=0.65,
