@@ -296,6 +296,22 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         default="",
     )
 
+    comfyui_albedo_mode: BoolProperty(
+        name="Albedo Mode",
+        description="When enabled, ComfyUI outputs an albedo image. When disabled, it outputs a shaded image",
+        default=False,
+    )
+
+    comfyui_albedo_source: EnumProperty(
+        name="Albedo Source",
+        description="Marigold model used for albedo generation",
+        items=[
+            ('APPEARANCE', 'appearance', 'Use marigold-iid-appearance'),
+            ('LIGHTING', 'lighting', 'Use marigold-iid-lighting'),
+        ],
+        default='LIGHTING',
+    )
+
     comfyui_seed_mode: EnumProperty(
         name="Seed Mode",
         items=[
@@ -445,6 +461,42 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
             ('STRICT', 'Strict Ray', 'Require a matching first surface hit before color blending'),
         ],
         default='LEGACY',
+    )
+    texture_merge_surface_sample_mode: EnumProperty(
+        name="RGB Surface Check",
+        items=[('OFF', 'Off', 'Use original nearest-pixel sampling'),
+               ('LOCAL_NEAREST', 'Local Surface', 'Require nearest RGB pixel center to hit the same local mesh surface')],
+        default='OFF',
+    )
+    texture_merge_sample_guard_px: IntProperty(
+        name="RGB Boundary Guard (capture px)", default=-1, min=-1, max=8,
+        description="Silhouette and internal occlusion guard; -1 derives capture-pixel width from generation scale, 0-8 sets it explicitly",
+    )
+    texture_merge_fill_mode: EnumProperty(
+        name="Small Hole Fill",
+        items=[('OFF', 'Off', 'Leave unobserved UV pixels unresolved'),
+               ('SMALL_HOLES', 'Constrained', 'Fill only small, local, color-consistent holes')],
+        default='OFF',
+    )
+    texture_merge_fill_vertex_group: StringProperty(
+        name="Fill Vertex Group", default="",
+        description="Optional evaluated-mesh vertex group limiting which faces may be filled; empty uses mesh connectivity",
+    )
+    texture_merge_fill_max_hole_texels: IntProperty(
+        name="Max Hole Area", default=8, min=1, max=64,
+        description="Maximum number of connected unobserved UV texels per hole",
+    )
+    texture_merge_fill_max_surface_fraction: FloatProperty(
+        name="Max Surface Distance", default=0.002, min=0.000001, max=0.1, precision=5,
+        description="Maximum mesh-surface path length as a fraction of the target bounding-box diagonal",
+    )
+    texture_merge_fill_min_confidence: FloatProperty(
+        name="Min Source Weight", default=0.05, min=0.000001, max=1.0,
+        description="Minimum direct view weight permitted as a fill source",
+    )
+    texture_merge_fill_max_color_range: FloatProperty(
+        name="Max Source Color Range", default=0.18, min=0.000001, max=1.0,
+        description="Reject fill when neighboring direct colors disagree by more than this sRGB range",
     )
     texture_merge_depth_sigma_scale_px: FloatProperty(
         name="Depth Sigma Scale (px)",

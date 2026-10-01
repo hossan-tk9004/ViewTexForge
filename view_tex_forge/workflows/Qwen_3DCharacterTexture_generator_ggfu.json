@@ -477,7 +477,7 @@
         0
       ],
       "images": [
-        "416",
+        "774",
         0
       ]
     },
@@ -679,7 +679,7 @@
   },
   "569": {
     "inputs": {
-      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\clay",
+      "folder_path": "D:\\RD\\AImodel\\junon\\_TextureGenerateTest\\TextureGenerate11\\ASTRA_TEST_02\\clay",
       "file_filter": "*.png",
       "sort_method": "numerical"
     },
@@ -690,7 +690,7 @@
   },
   "571": {
     "inputs": {
-      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\depth",
+      "folder_path": "D:\\RD\\AImodel\\junon\\_TextureGenerateTest\\TextureGenerate11\\ASTRA_TEST_02\\depth",
       "file_filter": "*.png",
       "sort_method": "numerical"
     },
@@ -714,7 +714,7 @@
   },
   "601": {
     "inputs": {
-      "folder_path": "D:\\RD\\AImodel\\junon\\TextureGenerate10_Face\\mask",
+      "folder_path": "D:\\RD\\AImodel\\junon\\_TextureGenerateTest\\TextureGenerate11\\ASTRA_TEST_02\\mask",
       "file_filter": "*.png",
       "sort_method": "numerical"
     },
@@ -1038,7 +1038,6 @@
   },
   "713": {
     "inputs": {
-      "displaytext": "1024",
       "input": [
         "711",
         0
@@ -1051,7 +1050,6 @@
   },
   "714": {
     "inputs": {
-      "displaytext": "1024",
       "input": [
         "712",
         0
@@ -1131,6 +1129,176 @@
     "class_type": "PreviewAny",
     "_meta": {
       "title": "プレビュー任意"
+    }
+  },
+  "740": {
+    "inputs": {
+      "value": false
+    },
+    "class_type": "PrimitiveBoolean",
+    "_meta": {
+      "title": "ViewTexForge_input_AlbedoMode"
+    }
+  },
+  "770": {
+    "inputs": {
+      "seed": 123,
+      "denoise_steps": 12,
+      "ensemble_size": 4,
+      "processing_resolution": [
+        "294",
+        0
+      ],
+      "scheduler": "DDIMScheduler",
+      "use_taesd_vae": false,
+      "keep_model_loaded": false,
+      "marigold_model": [
+        "772",
+        0
+      ],
+      "image": [
+        "785",
+        0
+      ]
+    },
+    "class_type": "MarigoldDepthEstimation_v2",
+    "_meta": {
+      "title": "MarigoldDepthEstimation_v2"
+    }
+  },
+  "771": {
+    "inputs": {
+      "model": "prs-eth/marigold-iid-lighting-v1-1"
+    },
+    "class_type": "MarigoldModelLoader",
+    "_meta": {
+      "title": "MarigoldModelLoader"
+    }
+  },
+  "772": {
+    "inputs": {
+      "model": "prs-eth/marigold-iid-appearance-v1-1"
+    },
+    "class_type": "MarigoldModelLoader",
+    "_meta": {
+      "title": "MarigoldModelLoader"
+    }
+  },
+  "773": {
+    "inputs": {
+      "pbr_pipe": [
+        "778",
+        0
+      ]
+    },
+    "class_type": "PBRSplitter",
+    "_meta": {
+      "title": "PBR Splitter"
+    }
+  },
+  "774": {
+    "inputs": {
+      "switch": [
+        "740",
+        0
+      ],
+      "on_false": [
+        "416",
+        0
+      ],
+      "on_true": [
+        "773",
+        0
+      ]
+    },
+    "class_type": "ComfySwitchNode",
+    "_meta": {
+      "title": "スイッチ"
+    }
+  },
+  "775": {
+    "inputs": {
+      "seed": 123,
+      "denoise_steps": 12,
+      "ensemble_size": 4,
+      "processing_resolution": [
+        "294",
+        0
+      ],
+      "scheduler": "DDIMScheduler",
+      "use_taesd_vae": false,
+      "keep_model_loaded": false,
+      "marigold_model": [
+        "771",
+        0
+      ],
+      "image": [
+        "785",
+        0
+      ]
+    },
+    "class_type": "MarigoldDepthEstimation_v2",
+    "_meta": {
+      "title": "MarigoldDepthEstimation_v2"
+    }
+  },
+  "778": {
+    "inputs": {
+      "albedo_source": [
+        "789",
+        0
+      ],
+      "gamma_albedo": 0.45,
+      "gamma_metal_rough": 2,
+      "gamma_lighting_ao": 0.45,
+      "marigold_appearance": [
+        "770",
+        0
+      ],
+      "marigold_lighting": [
+        "775",
+        0
+      ]
+    },
+    "class_type": "PBRExtractor",
+    "_meta": {
+      "title": "PBRExtractor"
+    }
+  },
+  "785": {
+    "inputs": {
+      "min": 0,
+      "max": 1,
+      "clamp": true,
+      "image": [
+        "416",
+        0
+      ]
+    },
+    "class_type": "RemapImageRange",
+    "_meta": {
+      "title": "Remap Image Range"
+    }
+  },
+  "788": {
+    "inputs": {
+      "images": [
+        "774",
+        0
+      ]
+    },
+    "class_type": "PreviewImage",
+    "_meta": {
+      "title": "画像プレビュー"
+    }
+  },
+  "789": {
+    "inputs": {
+      "value": "lighting"
+    },
+    "class_type": "PrimitiveString",
+    "_meta": {
+      "title": "ViewTexForge_input_AlbedoSource"
     }
   }
 }

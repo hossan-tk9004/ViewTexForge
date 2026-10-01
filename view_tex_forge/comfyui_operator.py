@@ -54,6 +54,8 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
             output_dir=output_dir,
             seed_mode=settings.comfyui_seed_mode,
             base_seed=settings.comfyui_base_seed,
+            albedo_mode=settings.comfyui_albedo_mode,
+            albedo_source=settings.comfyui_albedo_source,
             event_queue=self._events,
         )
 

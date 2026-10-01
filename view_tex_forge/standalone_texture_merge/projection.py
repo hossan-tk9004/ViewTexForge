@@ -64,6 +64,38 @@ def resolve_depth_tolerance(metadata, settings):
     return float(sigma), float(cutoff), float(footprint)
 
 
+def pixel_center_plane_depth(raster, metadata, xy, depth_bu):
+    """Depth of the UV triangle's plane at its sampled ORTHO pixel center.
+
+    Capture depth is stored at pixel centers, while a UV point can project
+    anywhere inside that pixel. Comparing those different rays creates a
+    sawtooth error on sloped surfaces. This prediction stays on the target
+    face's local plane; it does not accept a foreground hit at another depth.
+    """
+    camera = metadata["camera"]
+    if camera["camera_type"] != "ORTHO":
+        raise ValueError("Pixel-center plane depth requires ORTHO capture")
+    projection = np.asarray(camera["projection_matrix"], np.float64)
+    if (projection.shape != (4, 4) or not np.allclose(projection[:2, 2], 0, atol=1e-8)):
+        raise ValueError("Unsupported orthographic projection shear")
+    width, height = metadata["render"]["resolution"]
+    safe_xy = np.where(np.isfinite(xy), xy, -1)
+    ix = np.floor(np.clip(safe_xy[:, 0], 0, width-1))
+    iy = np.floor(np.clip(safe_xy[:, 1], 0, height-1))
+    ndc_offset = np.column_stack((2*(ix+0.5-safe_xy[:, 0])/width,
+                                  -2*(iy+0.5-safe_xy[:, 1])/height))
+    camera_xy_offset = ndc_offset @ np.linalg.inv(projection[:2, :2]).T
+    rotation = np.asarray(camera["matrix_world"], np.float64)[:3, :3]
+    normal_camera = np.asarray(raster["face_normals"], np.float64) @ rotation
+    denominator = normal_camera[:, 2]
+    usable = np.isfinite(camera_xy_offset).all(axis=1) & (np.abs(denominator) > 1e-7)
+    expected = np.full(len(depth_bu), np.nan, np.float64)
+    expected[usable] = (depth_bu[usable] +
+        np.einsum("ij,ij->i", normal_camera[usable, :2], camera_xy_offset[usable])
+        / denominator[usable])
+    return expected
+
+
 def sample_weight(raster, view, settings, visibility=None, return_diagnostics=False):
     xy, depth_bu, direction = project(raster["points"], view.metadata)
     height, width = view.depth.shape
@@ -77,9 +109,15 @@ def sample_weight(raster, view, settings, visibility=None, return_diagnostics=Fa
     image_valid = (inframe & view.geometry_mask[iy, ix] & view.color_valid_mask[iy, ix]
              & np.isfinite(raw) & (raw > 0)
              & (depth_bu >= camera["clip_start"]) & (depth_bu <= camera["clip_end"]))
-    delta = np.abs(raw - depth_bu * view.metadata["meters_per_world_unit"])
+    # LEGACY remains byte-for-byte compatible. STRICT compares the captured
+    # center depth with the target surface at that same center ray.
+    if settings.visibility_mode == "STRICT":
+        comparison_depth = pixel_center_plane_depth(raster, view.metadata, xy, depth_bu)
+    else:
+        comparison_depth = depth_bu
+    delta = np.abs(raw - comparison_depth * view.metadata["meters_per_world_unit"])
     depth_sigma_m, depth_cutoff_m, _ = resolve_depth_tolerance(view.metadata, settings)
-    valid = image_valid & (delta < depth_cutoff_m)
+    valid = image_valid & np.isfinite(delta) & (delta < depth_cutoff_m)
     facing = np.clip(raster["normals"] @ direction, 0, 1)
     # OPAQUE_DOUBLE_SIDED_TRIANGLES describes the captured depth/occlusion
     # surface only. COLOR is strictly front-facing: backside weight is zero.
@@ -101,6 +139,9 @@ def sample_weight(raster, view, settings, visibility=None, return_diagnostics=Fa
             geometry_rejected=int((legacy_accepted & ~visibility).sum()) if visibility is not None else 0,
             visible_depth_rejected=int((visibility & image_valid & ~valid).sum()) if visibility is not None else 0,
             retained_candidates=int((weight > settings.min_weight_sum).sum()),
+            depth_comparison=("TARGET_PLANE_AT_CAPTURE_PIXEL_CENTER"
+                              if settings.visibility_mode == "STRICT" else "UV_POINT_LEGACY"),
+            plane_unavailable=int((image_valid & ~np.isfinite(delta)).sum()),
         )
         return view.color[iy, ix], weight, report
     return view.color[iy, ix], weight

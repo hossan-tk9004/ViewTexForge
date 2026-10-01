@@ -19,7 +19,8 @@ def run(manifest_path, output_root, settings=None, scene=None):
     settings = settings or Settings()
     scene = scene or bpy.context.scene
     views, targets = load_dataset(manifest_path, read_image)
-    snapshots = collect_render_geometry(scene, targets)
+    snapshots = collect_render_geometry(scene, targets,
+                 settings.fill_vertex_group if settings.fill_mode != "OFF" else "")
     visibility_provider = None
     if settings.visibility_mode == "STRICT":
         from .blender_visibility import StrictVisibility

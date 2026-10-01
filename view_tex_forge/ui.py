@@ -25,7 +25,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         layout = self.layout
         settings = context.scene.viewtexforge_settings
 
-        layout.label(text="Version 0.5.12")
+        layout.label(text="Version 0.5.13")
         layout.separator()
 
         save = layout.box()
@@ -129,6 +129,8 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
 
             comfy.separator()
             comfy.prop(settings, 'comfyui_reference_image', text='Reference Image')
+            comfy.prop(settings, 'comfyui_albedo_mode', text='Albedo Mode')
+            comfy.prop(settings, 'comfyui_albedo_source', text='Albedo Source')
             comfy.prop(settings, 'comfyui_seed_mode', text='Seed Mode')
             if settings.comfyui_seed_mode != 'RANDOM':
                 comfy.prop(settings, 'comfyui_base_seed', text='Base Seed')
@@ -143,6 +145,17 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
         merge = layout.box()
         if _foldout_header(merge, settings, 'show_texture_merge_settings', 'Texture Merge Settings'):
             merge.prop(settings, 'texture_merge_visibility_mode')
+            if settings.texture_merge_visibility_mode == 'STRICT':
+                merge.prop(settings, 'texture_merge_surface_sample_mode')
+                if settings.texture_merge_surface_sample_mode != 'OFF':
+                    merge.prop(settings, 'texture_merge_sample_guard_px')
+                merge.prop(settings, 'texture_merge_fill_mode')
+                if settings.texture_merge_fill_mode != 'OFF':
+                    merge.prop(settings, 'texture_merge_fill_vertex_group')
+                    merge.prop(settings, 'texture_merge_fill_max_hole_texels')
+                    merge.prop(settings, 'texture_merge_fill_max_surface_fraction')
+                    merge.prop(settings, 'texture_merge_fill_min_confidence')
+                    merge.prop(settings, 'texture_merge_fill_max_color_range')
             merge.separator()
             merge.prop(settings, 'texture_merge_resolution')
             merge.prop(settings, 'texture_merge_depth_tolerance_mode')

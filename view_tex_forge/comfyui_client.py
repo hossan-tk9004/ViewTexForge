@@ -29,6 +29,8 @@ WORKFLOW_CONTRACT = {
     "seed": "ViewTexForge_input_Seed",
     "output_dir": "ViewTexForge_input_OutputDirName",
     "output_prefix": "ViewTexForge_input_OutputFilePrefix",
+    "albedo_mode": "ViewTexForge_input_AlbedoMode",
+    "albedo_source": "ViewTexForge_input_AlbedoSource",
     "generated_output": "ViewTexForge_output_GeneratedImage",
 }
 
@@ -42,6 +44,8 @@ WORKFLOW_EXPECTED_TYPES = {
     "seed": "SeedNode",
     "output_dir": "PrimitiveString",
     "output_prefix": "PrimitiveString",
+    "albedo_mode": "PrimitiveBoolean",
+    "albedo_source": "PrimitiveString",
     "generated_output": "SaveImage",
 }
 
@@ -105,7 +109,7 @@ def validate_workflow(workflow, *, log_errors=True):
         required_keys = (
             "source_folder", "depth_folder", "mask_folder",
             "reference", "positive_prompt", "negative_prompt", "seed",
-            "output_dir", "output_prefix", "generated_output",
+            "output_dir", "output_prefix", "albedo_mode", "albedo_source", "generated_output",
         )
         required_input_keys = {
             "source_folder": "folder_path",
@@ -117,6 +121,8 @@ def validate_workflow(workflow, *, log_errors=True):
             "seed": "seed",
             "output_dir": "value",
             "output_prefix": "value",
+            "albedo_mode": "value",
+            "albedo_source": "value",
             "generated_output": "images",
         }
 
@@ -151,6 +157,8 @@ def validate_workflow(workflow, *, log_errors=True):
                 "seed_node": resolved["seed"],
                 "output_dir_node": resolved["output_dir"],
                 "output_prefix_node": resolved["output_prefix"],
+                "albedo_mode_node": resolved["albedo_mode"],
+                "albedo_source_node": resolved["albedo_source"],
                 "save_node": resolved["generated_output"],
             })
 
@@ -610,7 +618,7 @@ def resolve_seed(base_seed, seed_mode, batch_index=0):
 
 
 class ComfyUIGenerationWorker(threading.Thread):
-    def __init__(self, *, server_url, workflow_path, reference_path, output_dir, seed_mode, base_seed, event_queue):
+    def __init__(self, *, server_url, workflow_path, reference_path, output_dir, seed_mode, base_seed, albedo_mode, albedo_source, event_queue):
         super().__init__(daemon=True, name="ViewTexForge-ComfyUIGeneration")
         self.server_url = _normalize_base_url(server_url)
         self.workflow_path = workflow_path
@@ -618,6 +626,8 @@ class ComfyUIGenerationWorker(threading.Thread):
         self.output_dir = output_dir
         self.seed_mode = seed_mode
         self.base_seed = base_seed
+        self.albedo_mode = bool(albedo_mode)
+        self.albedo_source = str(albedo_source)
         self.events = event_queue
         self.client_id = uuid.uuid4().hex
         self.job_id = uuid.uuid4().hex[:12]
@@ -715,6 +725,10 @@ class ComfyUIGenerationWorker(threading.Thread):
         )
         workflow[contract["reference_node"]]["inputs"]["image"] = reference_remote
         workflow[contract["seed_node"]]["inputs"]["seed"] = resolved_seed
+        workflow[contract["albedo_mode_node"]]["inputs"]["value"] = self.albedo_mode
+        workflow[contract["albedo_source_node"]]["inputs"]["value"] = (
+            "appearance" if self.albedo_source == "APPEARANCE" else "lighting"
+        )
 
         print("[ViewTexForge][ComfyUI Folder Mapping]")
         print(f"  Source Folder: {input_folders['source']}")
@@ -723,6 +737,8 @@ class ComfyUIGenerationWorker(threading.Thread):
         print(f"  View Count   : {len(views)}")
         print(f"  First View   : {views[0]['view_id']} (Front)")
         print(f"  Reference    : {reference_remote}")
+        print(f"  Albedo Mode  : {self.albedo_mode}")
+        print(f"  Albedo Source: {'appearance' if self.albedo_source == 'APPEARANCE' else 'lighting'}")
         print(f"  Cache Nonce  : {self.job_id}")
         print("[ViewTexForge][ComfyUI ImageListLoader Cache Bust]")
         print(f"  Source Input : {submitted_folders['source']}")
@@ -839,6 +855,7 @@ class ComfyUIGenerationWorker(threading.Thread):
         # Texture Merge views[] contract. Paths in views[] are relative to the
         # generated manifest itself, as required by the embedded merge core.
         merge_views = []
+        from .standalone_texture_merge.generation_provenance import infer_generation_geometry
         for item in manifest_outputs:
             camera_abs = os.path.join(self.output_dir, item["camera_json"])
             color_abs = os.path.join(self.output_dir, item["generated_image"])
@@ -847,6 +864,7 @@ class ComfyUIGenerationWorker(threading.Thread):
             resolution = list((camera_meta.get("render") or {}).get("resolution") or [])
             if len(resolution) != 2:
                 raise RuntimeError(f"camera.json has no valid render.resolution: {camera_abs}")
+            generation_geometry = infer_generation_geometry(workflow, len(views), resolution)
             merge_views.append({
                 "view_id": item["view_id"],
                 "camera_json_path": os.path.relpath(camera_abs, generated_dir).replace("\\", "/"),
@@ -860,6 +878,7 @@ class ComfyUIGenerationWorker(threading.Thread):
                     "mapping": "IDENTITY_PIXEL",
                     "reference": "CAPTURE_PIXEL_GRID",
                 },
+                **({"generation_geometry": generation_geometry} if generation_geometry else {}),
             })
 
         manifest = {

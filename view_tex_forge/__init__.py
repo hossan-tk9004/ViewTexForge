@@ -1,7 +1,7 @@
 bl_info = {
     "name": "ViewTexForge",
     "author": "OpenAI",
-    "version": (0, 5, 12),
+    "version": (0, 5, 13),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > ViewTexForge",
     "description": "Camera-based capture tools for AI texture generation workflows",

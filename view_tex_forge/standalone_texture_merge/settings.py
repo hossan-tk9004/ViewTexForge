@@ -23,6 +23,14 @@ class Settings:
     png_bit_depth: int = 8
     visibility_mode: str = "LEGACY"  # "LEGACY" | "STRICT"
     visibility_chunk_size: int = 65536
+    surface_sample_mode: str = "OFF"  # OFF | LOCAL_NEAREST
+    sample_guard_px: int = -1  # -1 derives a conservative capture-pixel guard from provenance
+    fill_mode: str = "OFF"  # OFF | SMALL_HOLES
+    fill_vertex_group: str = ""
+    fill_max_hole_texels: int = 8
+    fill_max_surface_fraction: float = 0.002
+    fill_min_confidence: float = 0.05
+    fill_max_color_range: float = 0.18
 
     def __post_init__(self):
         # Settings domain checks, not Capture Contract validation.
@@ -56,3 +64,21 @@ class Settings:
             raise ValueError("visibility_mode must be LEGACY or STRICT")
         if type(self.visibility_chunk_size) is not int or self.visibility_chunk_size <= 0:
             raise ValueError("visibility_chunk_size must be a positive integer")
+        if self.surface_sample_mode not in ("OFF", "LOCAL_NEAREST"):
+            raise ValueError("surface_sample_mode must be OFF or LOCAL_NEAREST")
+        if self.fill_mode not in ("OFF", "SMALL_HOLES"):
+            raise ValueError("fill_mode must be OFF or SMALL_HOLES")
+        if (self.surface_sample_mode != "OFF" or self.fill_mode != "OFF") and self.visibility_mode != "STRICT":
+            raise ValueError("Stage 2 surface sampling and fill require STRICT visibility")
+        if type(self.sample_guard_px) is not int or not -1 <= self.sample_guard_px <= 8:
+            raise ValueError("sample_guard_px must be an integer from -1 (auto) to 8")
+        if type(self.fill_max_hole_texels) is not int or not 1 <= self.fill_max_hole_texels <= 64:
+            raise ValueError("fill_max_hole_texels must be an integer from 1 to 64")
+        if not isinstance(self.fill_vertex_group, str):
+            raise ValueError("fill_vertex_group must be a string")
+        if not math.isfinite(self.fill_max_surface_fraction) or not 0 < self.fill_max_surface_fraction <= 0.1:
+            raise ValueError("fill_max_surface_fraction must be in (0, 0.1]")
+        if not math.isfinite(self.fill_min_confidence) or not 0 < self.fill_min_confidence <= 1:
+            raise ValueError("fill_min_confidence must be in (0, 1]")
+        if not math.isfinite(self.fill_max_color_range) or not 0 < self.fill_max_color_range <= 1:
+            raise ValueError("fill_max_color_range must be in (0, 1]")

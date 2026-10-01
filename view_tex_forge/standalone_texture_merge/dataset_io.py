@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 from dataclasses import dataclass
 import numpy as np
+from .generation_provenance import infer_generation_geometry, read_verified_workflow
 
 
 def read_json(path):
@@ -34,10 +35,21 @@ def load_dataset(manifest_path, image_reader):
     """
     manifest_path = require_file(manifest_path)
     manifest = read_json(manifest_path)
+    generated_path = manifest_path.parent / "generated_manifest.json"
+    generated = read_json(generated_path) if generated_path.is_file() else {}
+    workflow = read_verified_workflow(generated)
+    view_count = len(manifest["views"])
     views, targets = [], {}
     for entry in sorted(manifest["views"], key=lambda e: e["view_id"]):
         camera_path = require_file(manifest_path.parent / entry["camera_json_path"])
         meta = read_json(camera_path)
+        if "generation_geometry" in entry:
+            meta["generation_geometry"] = entry["generation_geometry"]
+        elif workflow is not None:
+            inferred = infer_generation_geometry(workflow, view_count,
+                                                  meta["render"]["resolution"])
+            if inferred is not None:
+                meta["generation_geometry"] = inferred
         if meta["camera"]["camera_type"] != "ORTHO":
             raise NotImplementedError("Texture Merge v1 supports ORTHO only")
         # Do not recompute projection from ortho_scale: saved P includes shift,

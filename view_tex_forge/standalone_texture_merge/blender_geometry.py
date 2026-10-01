@@ -30,7 +30,7 @@ def resolve_targets(scene, targets):
     return resolved
 
 
-def _capture_target(target, obj, depsgraph):
+def _capture_target(target, obj, depsgraph, fill_vertex_group=""):
     obj_eval = obj.evaluated_get(depsgraph)
     matrix = obj_eval.matrix_world.copy()
     mesh = None
@@ -42,21 +42,33 @@ def _capture_target(target, obj, depsgraph):
         layer = mesh.uv_layers.get(target["uv_layer"])
         if layer is None:
             raise RuntimeError(f"Specified UV Layer not found: {obj.name}/{target['uv_layer']}")
-        return dict(object_id=target["object_id"], object_name=obj.name,
+        result = dict(object_id=target["object_id"], object_name=obj.name,
                     uv_layer=layer.name,
                     vertices_local=[tuple(v.co) for v in mesh.vertices],
                     triangles=[tuple(t.vertices) for t in mesh.loop_triangles],
                     corner_uv=[tuple(_uv_value(layer, i) for i in t.loops) for t in mesh.loop_triangles],
                     matrix_world=[list(row) for row in matrix])
+        if fill_vertex_group:
+            group = obj.vertex_groups.get(fill_vertex_group)
+            allowed_vertices = [False] * len(mesh.vertices)
+            if group is not None:
+                for vertex in mesh.vertices:
+                    allowed_vertices[vertex.index] = any(
+                        item.group == group.index and item.weight >= 0.5
+                        for item in vertex.groups)
+            result["fill_face_allowed"] = [all(allowed_vertices[index] for index in triangle)
+                                           for triangle in result["triangles"]]
+        return result
     finally:
         if mesh is not None:
             obj_eval.to_mesh_clear()
 
 
 class RenderGeometryCollector:
-    def __init__(self, scene, targets):
+    def __init__(self, scene, targets, fill_vertex_group=""):
         self.scene = scene
         self.targets = targets
+        self.fill_vertex_group = fill_vertex_group
         self.result = None
         self.error = None
         self._capturing = False
@@ -68,7 +80,8 @@ class RenderGeometryCollector:
             return
         self._capturing = True
         try:
-            self.result = [_capture_target(target, obj, depsgraph) for target, obj in self.targets]
+            self.result = [_capture_target(target, obj, depsgraph, self.fill_vertex_group)
+                           for target, obj in self.targets]
         except Exception as exc:
             self.error = exc
         finally:
@@ -100,9 +113,9 @@ class RenderGeometryCollector:
         return self.result
 
 
-def collect_render_geometry(scene, targets):
+def collect_render_geometry(scene, targets, fill_vertex_group=""):
     resolved = resolve_targets(scene, targets)
-    collector = RenderGeometryCollector(scene, resolved)
+    collector = RenderGeometryCollector(scene, resolved, fill_vertex_group)
     compositing = scene.render.use_compositing
     try:
         scene.render.use_compositing = False

@@ -130,6 +130,14 @@ def settings_from_scene(scene):
         padding_radius=int(s.texture_merge_padding_radius),
         png_bit_depth=int(s.texture_merge_png_bit_depth),
         visibility_mode=s.texture_merge_visibility_mode,
+        surface_sample_mode=s.texture_merge_surface_sample_mode,
+        sample_guard_px=int(s.texture_merge_sample_guard_px),
+        fill_mode=s.texture_merge_fill_mode,
+        fill_vertex_group=s.texture_merge_fill_vertex_group,
+        fill_max_hole_texels=int(s.texture_merge_fill_max_hole_texels),
+        fill_max_surface_fraction=float(s.texture_merge_fill_max_surface_fraction),
+        fill_min_confidence=float(s.texture_merge_fill_min_confidence),
+        fill_max_color_range=float(s.texture_merge_fill_max_color_range),
     )
 
 
@@ -150,6 +158,14 @@ def settings_dict(settings):
         'padding_radius': settings.padding_radius,
         'png_bit_depth': settings.png_bit_depth,
         'visibility_mode': settings.visibility_mode,
+        'surface_sample_mode': settings.surface_sample_mode,
+        'sample_guard_px': settings.sample_guard_px,
+        'fill_mode': settings.fill_mode,
+        'fill_vertex_group': settings.fill_vertex_group,
+        'fill_max_hole_texels': settings.fill_max_hole_texels,
+        'fill_max_surface_fraction': settings.fill_max_surface_fraction,
+        'fill_min_confidence': settings.fill_min_confidence,
+        'fill_max_color_range': settings.fill_max_color_range,
     }
 
 

@@ -21,7 +21,7 @@ def save_result(result, output_root, snapshot, settings, scene):
     if settings.debug_output:
         debug = directory/"debug"
         debug.mkdir(exist_ok=True)
-        for name in ("direct_coverage", "padding_area", "unobserved"):
+        for name in ("direct_coverage", "padding_area", "unobserved", "filled_area"):
             write_png(debug/f"{name}.png", result[name])
         write_exr(debug/"weight_sum.exr", result["weight_sum"], scene)
         write_exr(debug/"confidence_max.exr", result["confidence_max"], scene)
