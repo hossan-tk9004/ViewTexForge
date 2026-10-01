@@ -105,9 +105,18 @@ def _auto_view_definitions(view_count):
         ]
 
     if view_count == 9:
-        # Legacy 9-view set restored for validation: eight horizontal views plus Top.
-        return equator + [
+        # Axis-heavy 9-view validation set: six orthogonal directions plus
+        # horizontal front diagonals and one lower-front view.
+        return [
+            ("Front", 0.0, 0.0),
+            ("Right", 90.0, 0.0),
+            ("Back", 180.0, 0.0),
+            ("Left", 270.0, 0.0),
             ("Top", 0.0, 90.0),
+            ("Bottom", 0.0, -90.0),
+            ("FrontRight", 45.0, 15.0),
+            ("FrontLeft", 315.0, 15.0),
+            ("LowerFront", 0.0, -30.0),
         ]
 
     if view_count == 12:

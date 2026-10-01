@@ -21,6 +21,8 @@ class Settings:
     view_priority: dict = field(default_factory=dict)
     padding_radius: int = 16
     png_bit_depth: int = 8
+    visibility_mode: str = "LEGACY"  # "LEGACY" | "STRICT"
+    visibility_chunk_size: int = 65536
 
     def __post_init__(self):
         # Settings domain checks, not Capture Contract validation.
@@ -50,3 +52,7 @@ class Settings:
             raise ValueError("padding_radius must be a nonnegative integer")
         if self.png_bit_depth not in (8, 16):
             raise ValueError("png_bit_depth must be 8 or 16")
+        if self.visibility_mode not in ("LEGACY", "STRICT"):
+            raise ValueError("visibility_mode must be LEGACY or STRICT")
+        if type(self.visibility_chunk_size) is not int or self.visibility_chunk_size <= 0:
+            raise ValueError("visibility_chunk_size must be a positive integer")

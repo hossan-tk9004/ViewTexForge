@@ -173,7 +173,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         items=[
             ('4', '2 x 2 (4 Cameras)', 'Front / Right / Back / Left'),
             ('6', '3 x 2 (6 Cameras)', 'Front / Right / Back / Left / Top / Bottom'),
-            ('9', '3 x 3 (9 Cameras)', 'Legacy 9-view set: eight horizontal views plus Top'),
+            ('9', '3 x 3 (9 Cameras)', 'Front / Right / Back / Left / Top / Bottom / slightly elevated Front-Right / Front-Left / Lower-Front'),
             ('12', '4 x 3 (12 Cameras)', '4 horizontal, 4 upper-diagonal, and 4 lower-cardinal views'),
             ('16', '4 x 4 (16 Cameras)', 'Legacy 16-view set: 8 horizontal, 4 upper-cardinal, and 4 lower-diagonal views'),
         ],
@@ -436,6 +436,15 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
             ('MANUAL', 'Manual', 'Use explicit depth tolerance values in meters'),
         ],
         default='AUTO',
+    )
+    texture_merge_visibility_mode: EnumProperty(
+        name="Visibility",
+        description="Strict ray visibility rejects colors from geometrically occluded surfaces",
+        items=[
+            ('LEGACY', 'Legacy Depth', 'Use the original depth-weighted merge'),
+            ('STRICT', 'Strict Ray', 'Require a matching first surface hit before color blending'),
+        ],
+        default='LEGACY',
     )
     texture_merge_depth_sigma_scale_px: FloatProperty(
         name="Depth Sigma Scale (px)",
