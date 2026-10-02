@@ -45,7 +45,7 @@ WORKFLOW_EXPECTED_TYPES = {
     "output_dir": "PrimitiveString",
     "output_prefix": "PrimitiveString",
     "albedo_mode": "PrimitiveBoolean",
-    "albedo_source": "PrimitiveString",
+    "albedo_source": "PBRExtractor",
     "generated_output": "SaveImage",
 }
 
@@ -122,7 +122,7 @@ def validate_workflow(workflow, *, log_errors=True):
             "output_dir": "value",
             "output_prefix": "value",
             "albedo_mode": "value",
-            "albedo_source": "value",
+            "albedo_source": "albedo_source",
             "generated_output": "images",
         }
 
@@ -726,7 +726,7 @@ class ComfyUIGenerationWorker(threading.Thread):
         workflow[contract["reference_node"]]["inputs"]["image"] = reference_remote
         workflow[contract["seed_node"]]["inputs"]["seed"] = resolved_seed
         workflow[contract["albedo_mode_node"]]["inputs"]["value"] = self.albedo_mode
-        workflow[contract["albedo_source_node"]]["inputs"]["value"] = (
+        workflow[contract["albedo_source_node"]]["inputs"]["albedo_source"] = (
             "appearance" if self.albedo_source == "APPEARANCE" else "lighting"
         )
 

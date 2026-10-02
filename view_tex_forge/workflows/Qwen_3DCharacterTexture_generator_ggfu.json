@@ -1038,6 +1038,7 @@
   },
   "713": {
     "inputs": {
+      "displaytext": "1024",
       "input": [
         "711",
         0
@@ -1050,6 +1051,7 @@
   },
   "714": {
     "inputs": {
+      "displaytext": "1024",
       "input": [
         "712",
         0
@@ -1133,7 +1135,7 @@
   },
   "740": {
     "inputs": {
-      "value": false
+      "value": true
     },
     "class_type": "PrimitiveBoolean",
     "_meta": {
@@ -1244,10 +1246,7 @@
   },
   "778": {
     "inputs": {
-      "albedo_source": [
-        "789",
-        0
-      ],
+      "albedo_source": "lighting",
       "gamma_albedo": 0.45,
       "gamma_metal_rough": 2,
       "gamma_lighting_ao": 0.45,
@@ -1262,7 +1261,7 @@
     },
     "class_type": "PBRExtractor",
     "_meta": {
-      "title": "PBRExtractor"
+      "title": "ViewTexForge_input_AlbedoSource"
     }
   },
   "785": {
@@ -1290,15 +1289,6 @@
     "class_type": "PreviewImage",
     "_meta": {
       "title": "画像プレビュー"
-    }
-  },
-  "789": {
-    "inputs": {
-      "value": "lighting"
-    },
-    "class_type": "PrimitiveString",
-    "_meta": {
-      "title": "ViewTexForge_input_AlbedoSource"
     }
   }
 }
