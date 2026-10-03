@@ -7,11 +7,11 @@ from .surface_fill import fill_small_holes
 
 
 def srgb_to_linear(rgb):
-    return np.where(rgb <= 0.04045, rgb/12.92, ((rgb+0.055)/1.055)**2.4)
+    return np.where(rgb <= 0.04045, rgb / 12.92, ((rgb + 0.055) / 1.055) ** 2.4)
 
 
 def linear_to_srgb(rgb):
-    return np.where(rgb <= 0.0031308, rgb*12.92, 1.055*np.maximum(rgb, 0)**(1/2.4)-0.055)
+    return np.where(rgb <= 0.0031308, rgb * 12.92, 1.055 * np.maximum(rgb, 0) ** (1 / 2.4) - 0.055)
 
 
 def sample_guard_px(view, settings):
@@ -23,15 +23,23 @@ def sample_guard_px(view, settings):
             or any(not math.isfinite(float(v)) or float(v) <= 0 for v in scale)):
         raise ValueError(f"Auto RGB guard needs verified generation scale: {view.view_id}; "
                          "set explicit capture-pixel guard or regenerate metadata")
-    guard = int(math.ceil(max(map(float, scale))/2))
+    guard = int(math.ceil(max(map(float, scale)) / 2))
     if guard > 8:
         raise ValueError(f"Generation scale needs guard >8px: {view.view_id}")
     return guard
 
 
-def merge(snapshot, views, settings, visibility_provider=None):
+def merge_iter(snapshot, views, settings, visibility_provider=None):
+    """Incremental merge generator used by the Blender modal operator.
+
+    Yields lightweight progress dictionaries before expensive phases so Blender
+    can redraw between chunks. The final merge result is returned through
+    StopIteration.value. The numerical merge algorithm itself is unchanged.
+    """
     if settings.visibility_mode == "STRICT" and visibility_provider is None:
         raise ValueError("STRICT requires validated Blender render geometry; no legacy fallback")
+
+    yield {"progress": 0.0, "status": "Rasterizing UV..."}
     raster = rasterize(snapshot, settings.resolution)
     yy, xx = raster["yy"], raster["xx"]
     total = np.zeros((len(yy), 3), np.float64)
@@ -40,7 +48,14 @@ def merge(snapshot, views, settings, visibility_provider=None):
     best = np.zeros(len(yy), np.float64) if (settings.debug_output or settings.fill_mode != "OFF") else None
     candidates = np.zeros(len(yy), np.uint16) if settings.debug_output else None
     order, stats = [], []
-    for index, view in enumerate(sorted(views, key=lambda v: v.view_id), 1):
+
+    sorted_views = sorted(views, key=lambda v: v.view_id)
+    view_count = max(1, len(sorted_views))
+    for index, view in enumerate(sorted_views, 1):
+        yield {
+            "progress": 0.08 + 0.72 * ((index - 1) / view_count),
+            "status": f"Processing {view.view_id} ({index}/{view_count})...",
+        }
         order.append(view.view_id)
         if not any(t["object_id"] == snapshot["object_id"] for t in view.metadata["targets"]):
             continue
@@ -64,7 +79,6 @@ def merge(snapshot, views, settings, visibility_provider=None):
                 rejection["surface_sample"] = surface_report
         if settings.blend_space == "SCENE_LINEAR":
             color = srgb_to_linear(color)
-        # Do not let rejected nonfinite color samples poison the accumulator.
         used = weight > 0
         total[used] += color[used] * weight[used, None]
         weight_sum += weight
@@ -84,6 +98,7 @@ def merge(snapshot, views, settings, visibility_provider=None):
                 depth_cutoff_m=cutoff_m,
                 rejection=rejection,
             ))
+
     covered = weight_sum > settings.min_weight_sum
     height, width = raster["owner"].shape
     rgb = np.zeros((height, width, 3), np.float32)
@@ -95,11 +110,15 @@ def merge(snapshot, views, settings, visibility_provider=None):
     direct[yy[covered], xx[covered]] = True
     filled = np.zeros((height, width), bool)
     fill_report = None
+
     if settings.fill_mode == "SMALL_HOLES":
+        yield {"progress": 0.84, "status": "Filling small holes..."}
         max_weight = np.zeros((height, width), np.float32)
         max_weight[yy, xx] = best
         rgb, filled, fill_report = fill_small_holes(
             snapshot, raster, rgb, direct, max_weight, settings)
+
+    yield {"progress": 0.92, "status": "Padding texture..."}
     rgb, padding = pad(rgb, direct, raster["owner"] >= 0, raster["islands"], settings.padding_radius)
     result = dict(basecolor=rgb)
     if settings.debug_output:
@@ -136,4 +155,17 @@ def merge(snapshot, views, settings, visibility_provider=None):
                                   depth_cutoff_scale_px=settings.depth_cutoff_scale_px if settings.depth_tolerance_mode == "AUTO" else None,
                                   manual_depth_sigma_m=settings.depth_sigma_m if settings.depth_tolerance_mode == "MANUAL" else None,
                                   manual_depth_cutoff_m=settings.depth_cutoff_m if settings.depth_tolerance_mode == "MANUAL" else None))
+    yield {"progress": 1.0, "status": "Merge calculation complete"}
     return result
+
+
+def _consume(generator):
+    while True:
+        try:
+            next(generator)
+        except StopIteration as stop:
+            return stop.value
+
+
+def merge(snapshot, views, settings, visibility_provider=None):
+    return _consume(merge_iter(snapshot, views, settings, visibility_provider=visibility_provider))

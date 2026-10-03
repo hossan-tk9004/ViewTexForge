@@ -66,7 +66,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
             ('SOLID', 'Solid Viewport', 'Output a Solid viewport clay image using MatCap'),
             ('LIT', 'Lit Clay Render', 'Output a gray clay render with lighting enabled'),
         ],
-        default='SOLID',
+        default='LIT',
     )
 
     lighting_mode: EnumProperty(
@@ -75,7 +75,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
             ('EXISTING', 'Use Existing Lighting', 'Use the current scene lighting'),
             ('AUTO', 'Use Auto Lighting', 'Use an automatically generated 5-area-light rig'),
         ],
-        default='EXISTING',
+        default='AUTO',
     )
 
     show_lighting_options: BoolProperty(
@@ -172,10 +172,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         description="Automatically generated camera count and ComfyUI tile layout",
         items=[
             ('4', '2 x 2 (4 Cameras)', 'Front / Right / Back / Left'),
-            ('6', '3 x 2 (6 Cameras)', 'Front / Right / Back / Left / Top / Bottom'),
             ('9', '3 x 3 (9 Cameras)', 'Front / Right / Back / Left / Top / Bottom / slightly elevated Front-Right / Front-Left / Lower-Front'),
-            ('12', '4 x 3 (12 Cameras)', '4 horizontal, 4 upper-diagonal, and 4 lower-cardinal views'),
-            ('16', '4 x 4 (16 Cameras)', 'Legacy 16-view set: 8 horizontal, 4 upper-cardinal, and 4 lower-diagonal views'),
         ],
         default='4',
     )
@@ -196,7 +193,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         name="Camera",
         items=[
             ('VIEWPORT', 'Viewport Camera', 'Use the current 3D viewport camera/view'),
-            ('AUTO4', 'Auto Cameras', 'Create a selectable 4, 6, 9, 12, or 16 camera multi-view set'),
+            ('AUTO4', 'Auto Cameras', 'Create a supported 4 or 9 camera multi-view set'),
             ('SPECIFIED', 'Specified Camera', 'Use a specified camera object'),
         ],
         default='AUTO4',
@@ -386,6 +383,18 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         name="Texture Merge Settings",
         default=False,
     )
+    show_output_settings: BoolProperty(
+        name="Output Settings",
+        default=False,
+    )
+    show_generate_options: BoolProperty(
+        name="Generate Options",
+        default=False,
+    )
+    show_texture_merge_options: BoolProperty(
+        name="Texture Merge Options",
+        default=False,
+    )
     show_texture_merge_advanced: BoolProperty(
         name="Advanced Merge Settings",
         default=False,
@@ -404,6 +413,26 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         default='FULL',
     )
 
+    capture_is_running: BoolProperty(
+        name="Capture Running",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    capture_last_result: StringProperty(
+        name="Capture Last Result",
+        default="IDLE",
+        options={'SKIP_SAVE'},
+    )
+    texture_merge_is_running: BoolProperty(
+        name="Texture Merge Running",
+        default=False,
+        options={'SKIP_SAVE'},
+    )
+    texture_merge_last_result: StringProperty(
+        name="Texture Merge Last Result",
+        default="IDLE",
+        options={'SKIP_SAVE'},
+    )
     execution_is_running: BoolProperty(
         name="Execution Running",
         default=False,
@@ -460,13 +489,13 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
             ('LEGACY', 'Legacy Depth', 'Use the original depth-weighted merge'),
             ('STRICT', 'Strict Ray', 'Require a matching first surface hit before color blending'),
         ],
-        default='LEGACY',
+        default='STRICT',
     )
     texture_merge_surface_sample_mode: EnumProperty(
         name="RGB Surface Check",
         items=[('OFF', 'Off', 'Use original nearest-pixel sampling'),
                ('LOCAL_NEAREST', 'Local Surface', 'Require nearest RGB pixel center to hit the same local mesh surface')],
-        default='OFF',
+        default='LOCAL_NEAREST',
     )
     texture_merge_sample_guard_px: IntProperty(
         name="RGB Boundary Guard (capture px)", default=-1, min=-1, max=8,
@@ -476,7 +505,7 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         name="Small Hole Fill",
         items=[('OFF', 'Off', 'Leave unobserved UV pixels unresolved'),
                ('SMALL_HOLES', 'Constrained', 'Fill only small, local, color-consistent holes')],
-        default='OFF',
+        default='SMALL_HOLES',
     )
     texture_merge_fill_vertex_group: StringProperty(
         name="Fill Vertex Group", default="",

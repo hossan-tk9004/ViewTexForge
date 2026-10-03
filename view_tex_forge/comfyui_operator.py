@@ -3,6 +3,7 @@ import queue
 
 import bpy
 
+from .utils import validate_output_directory
 from .comfyui_client import (
     ComfyUIGenerationWorker,
     request_connection_check,
@@ -31,7 +32,14 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
 
         workflow_path = resolve_workflow_path(settings)
         reference_path = bpy.path.abspath(settings.comfyui_reference_image)
-        output_dir = bpy.path.abspath(settings.output_dir)
+        valid_output, output_dir, output_error = validate_output_directory(settings.output_dir, create=False)
+        if not valid_output:
+            settings.comfyui_status_text = "Failed: " + output_error
+            if not settings.execution_is_running:
+                settings.execution_current_stage = "Failed"
+                settings.execution_status_text = output_error
+            self.report({'WARNING'}, output_error)
+            return {'CANCELLED'}
 
         if not settings.comfyui_server_url.strip():
             self.report({'ERROR'}, "ComfyUI Server URL is empty.")
@@ -70,93 +78,109 @@ class VIEWTEXFORGE_OT_comfyui_generate(bpy.types.Operator):
         settings.comfyui_prompt_id = ""
         settings.comfyui_resolved_seed = 0
 
-        _ACTIVE_WORKERS[context.scene.as_pointer()] = self._worker
-        self._worker.start()
+        try:
+            _ACTIVE_WORKERS[context.scene.as_pointer()] = self._worker
+            self._worker.start()
 
-        window = context.window
-        self._timer = context.window_manager.event_timer_add(0.2, window=window)
-        context.window_manager.modal_handler_add(self)
-        return {'RUNNING_MODAL'}
+            window = context.window
+            self._timer = context.window_manager.event_timer_add(0.2, window=window)
+            context.window_manager.modal_handler_add(self)
+            return {'RUNNING_MODAL'}
+        except Exception as exc:
+            settings.comfyui_status_text = "Failed: " + str(exc)
+            if not settings.execution_is_running:
+                settings.execution_current_stage = "Failed"
+                settings.execution_status_text = settings.comfyui_status_text
+            self._finish(context)
+            self.report({'ERROR'}, settings.comfyui_status_text)
+            return {'CANCELLED'}
 
     def modal(self, context, event):
         if event.type != 'TIMER':
             return {'PASS_THROUGH'}
 
         settings = context.scene.viewtexforge_settings
-        finished = False
-        failed = False
-        done_message = None
+        try:
+            finished = False
+            failed = False
+            done_message = None
 
-        while True:
-            try:
-                message = self._events.get_nowait()
-            except queue.Empty:
-                break
+            while True:
+                try:
+                    message = self._events.get_nowait()
+                except queue.Empty:
+                    break
 
-            kind = message.get("kind")
-            if kind == "progress":
-                settings.comfyui_progress = message.get("progress", settings.comfyui_progress)
-                settings.comfyui_status_text = message.get("status", settings.comfyui_status_text)
-                if not settings.execution_is_running:
-                    settings.execution_current_stage = "ComfyUI"
-                    settings.execution_stage_progress = settings.comfyui_progress
-                    settings.execution_overall_progress = settings.comfyui_progress
-                    settings.execution_status_text = settings.comfyui_status_text
-            elif kind == "mapping":
-                # Mapping is intentionally hidden from the GUI; the detailed
-                # mapping remains available in the Blender system console.
-                pass
-            elif kind == "prompt":
-                settings.comfyui_prompt_id = message.get("prompt_id", "")
-            elif kind == "seed":
-                settings.comfyui_resolved_seed = int(message.get("seed", 0))
-            elif kind == "error":
-                settings.comfyui_status_text = "Failed: " + message.get("message", "Unknown error")
-                if not settings.execution_is_running:
-                    settings.execution_current_stage = "Failed"
-                    settings.execution_status_text = settings.comfyui_status_text
-                failed = True
-                finished = True
-            elif kind == "done":
-                settings.comfyui_progress = 100.0
-                settings.comfyui_status_text = "Completed"
-                if not settings.execution_is_running:
-                    settings.execution_current_stage = "Completed"
-                    settings.execution_stage_progress = 100.0
-                    settings.execution_overall_progress = 100.0
-                    settings.execution_status_text = "ComfyUI generation completed"
-                done_message = message.get("generated_dir")
-                finished = True
-
-        if not self._worker.is_alive() and not finished:
-            # Drain once more in case the final event arrived between checks.
-            try:
-                message = self._events.get_nowait()
-                if message.get("kind") == "error":
+                kind = message.get("kind")
+                if kind == "progress":
+                    settings.comfyui_progress = message.get("progress", settings.comfyui_progress)
+                    settings.comfyui_status_text = message.get("status", settings.comfyui_status_text)
+                    if not settings.execution_is_running:
+                        settings.execution_current_stage = "ComfyUI"
+                        settings.execution_stage_progress = settings.comfyui_progress
+                        settings.execution_overall_progress = settings.comfyui_progress
+                        settings.execution_status_text = settings.comfyui_status_text
+                elif kind == "mapping":
+                    pass
+                elif kind == "prompt":
+                    settings.comfyui_prompt_id = message.get("prompt_id", "")
+                elif kind == "seed":
+                    settings.comfyui_resolved_seed = int(message.get("seed", 0))
+                elif kind == "error":
                     settings.comfyui_status_text = "Failed: " + message.get("message", "Unknown error")
+                    if not settings.execution_is_running:
+                        settings.execution_current_stage = "Failed"
+                        settings.execution_status_text = settings.comfyui_status_text
                     failed = True
-                elif message.get("kind") == "done":
+                    finished = True
+                elif kind == "done":
                     settings.comfyui_progress = 100.0
                     settings.comfyui_status_text = "Completed"
+                    if not settings.execution_is_running:
+                        settings.execution_current_stage = "Completed"
+                        settings.execution_stage_progress = 100.0
+                        settings.execution_overall_progress = 100.0
+                        settings.execution_status_text = "ComfyUI generation completed"
                     done_message = message.get("generated_dir")
-            except queue.Empty:
-                if not settings.comfyui_status_text.startswith("Failed"):
-                    settings.comfyui_status_text = "Failed: generation worker ended unexpectedly"
-                    failed = True
-            finished = True
+                    finished = True
 
-        if finished:
+            if not self._worker.is_alive() and not finished:
+                try:
+                    message = self._events.get_nowait()
+                    if message.get("kind") == "error":
+                        settings.comfyui_status_text = "Failed: " + message.get("message", "Unknown error")
+                        failed = True
+                    elif message.get("kind") == "done":
+                        settings.comfyui_progress = 100.0
+                        settings.comfyui_status_text = "Completed"
+                        done_message = message.get("generated_dir")
+                except queue.Empty:
+                    if not settings.comfyui_status_text.startswith("Failed"):
+                        settings.comfyui_status_text = "Failed: generation worker ended unexpectedly"
+                        failed = True
+                finished = True
+
+            if finished:
+                self._finish(context)
+                request_connection_check()
+                if failed:
+                    self.report({'ERROR'}, settings.comfyui_status_text)
+                    return {'CANCELLED'}
+                self.report({'INFO'}, f"ComfyUI generation complete: {done_message or output_dir_safe(settings)}")
+                return {'FINISHED'}
+
+            if context.area:
+                context.area.tag_redraw()
+            return {'RUNNING_MODAL'}
+        except Exception as exc:
+            settings.comfyui_status_text = "Failed: " + str(exc)
+            if not settings.execution_is_running:
+                settings.execution_current_stage = "Failed"
+                settings.execution_status_text = settings.comfyui_status_text
+            print(f"[ViewTexForge][ComfyUI][ERROR] {exc}")
             self._finish(context)
-            request_connection_check()
-            if failed:
-                self.report({'ERROR'}, settings.comfyui_status_text)
-                return {'CANCELLED'}
-            self.report({'INFO'}, f"ComfyUI generation complete: {done_message or output_dir_safe(settings)}")
-            return {'FINISHED'}
-
-        if context.area:
-            context.area.tag_redraw()
-        return {'RUNNING_MODAL'}
+            self.report({'ERROR'}, settings.comfyui_status_text)
+            return {'CANCELLED'}
 
     def _finish(self, context):
         settings = context.scene.viewtexforge_settings

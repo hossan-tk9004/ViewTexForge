@@ -1,6 +1,6 @@
 import bpy
 
-from .texture_merge_operator import run_texture_merge
+from .utils import reset_runtime_locks
 
 
 MODE_STAGES = {
@@ -27,11 +27,14 @@ class VIEWTEXFORGE_OT_run_execution(bpy.types.Operator):
     _timer = None
     _stages = None
     _stage_index = 0
+    _waiting_for_capture = False
     _waiting_for_comfy = False
+    _waiting_for_merge = False
 
     def execute(self, context):
         settings = context.scene.viewtexforge_settings
-        if settings.execution_is_running or settings.comfyui_is_running:
+        if (settings.execution_is_running or settings.comfyui_is_running
+                or settings.capture_is_running or settings.texture_merge_is_running):
             self.report({'WARNING'}, 'A ViewTexForge operation is already running.')
             return {'CANCELLED'}
 
@@ -41,7 +44,9 @@ class VIEWTEXFORGE_OT_run_execution(bpy.types.Operator):
             return {'CANCELLED'}
 
         self._stage_index = 0
+        self._waiting_for_capture = False
         self._waiting_for_comfy = False
+        self._waiting_for_merge = False
         settings.execution_is_running = True
         settings.execution_overall_progress = 0.0
         settings.execution_stage_progress = 0.0
@@ -57,84 +62,104 @@ class VIEWTEXFORGE_OT_run_execution(bpy.types.Operator):
             return {'PASS_THROUGH'}
 
         settings = context.scene.viewtexforge_settings
-
-        if self._waiting_for_comfy:
-            settings.execution_current_stage = 'ComfyUI'
-            settings.execution_stage_progress = settings.comfyui_progress
-            settings.execution_status_text = settings.comfyui_status_text
-            self._update_overall(settings)
-
-            if settings.comfyui_is_running:
+        try:
+            if self._waiting_for_capture:
+                settings.execution_current_stage = 'Capture'
+                self._update_overall(settings)
+                if settings.capture_is_running:
+                    self._redraw(context)
+                    return {'RUNNING_MODAL'}
+                if settings.capture_last_result != 'FINISHED':
+                    return self._fail(context, settings.execution_status_text or 'Capture failed.')
+                settings.execution_stage_progress = 100.0
+                self._waiting_for_capture = False
+                self._stage_index += 1
+                self._update_overall(settings)
                 self._redraw(context)
                 return {'RUNNING_MODAL'}
 
-            if settings.comfyui_status_text != 'Completed':
-                return self._fail(context, settings.comfyui_status_text or 'ComfyUI generation failed.')
+            if self._waiting_for_comfy:
+                settings.execution_current_stage = 'ComfyUI'
+                settings.execution_stage_progress = settings.comfyui_progress
+                settings.execution_status_text = settings.comfyui_status_text
+                self._update_overall(settings)
 
-            settings.execution_stage_progress = 100.0
-            self._waiting_for_comfy = False
-            self._stage_index += 1
+                if settings.comfyui_is_running:
+                    self._redraw(context)
+                    return {'RUNNING_MODAL'}
+
+                if settings.comfyui_status_text != 'Completed':
+                    return self._fail(context, settings.comfyui_status_text or 'ComfyUI generation failed.')
+
+                settings.execution_stage_progress = 100.0
+                self._waiting_for_comfy = False
+                self._stage_index += 1
+                self._update_overall(settings)
+                self._redraw(context)
+                return {'RUNNING_MODAL'}
+
+            if self._waiting_for_merge:
+                settings.execution_current_stage = 'Texture Merge'
+                self._update_overall(settings)
+                if settings.texture_merge_is_running:
+                    self._redraw(context)
+                    return {'RUNNING_MODAL'}
+                if settings.texture_merge_last_result != 'FINISHED':
+                    return self._fail(context, settings.execution_status_text or 'Texture Merge failed.')
+                settings.execution_stage_progress = 100.0
+                self._waiting_for_merge = False
+                self._stage_index += 1
+                self._update_overall(settings)
+                self._redraw(context)
+                return {'RUNNING_MODAL'}
+
+            if self._stage_index >= len(self._stages):
+                return self._complete(context)
+
+            stage = self._stages[self._stage_index]
+            settings.execution_current_stage = STAGE_LABELS[stage]
+            settings.execution_stage_progress = 0.0
             self._update_overall(settings)
-            self._redraw(context)
-            return {'RUNNING_MODAL'}
 
-        if self._stage_index >= len(self._stages):
-            return self._complete(context)
+            if stage == 'CAPTURE':
+                settings.execution_status_text = 'Starting capture...'
+                try:
+                    result = bpy.ops.viewtexforge.capture('EXEC_DEFAULT')
+                except Exception as exc:
+                    return self._fail(context, f'Capture failed: {exc}')
+                if 'RUNNING_MODAL' not in result:
+                    return self._fail(context, settings.execution_status_text or 'Capture could not be started.')
+                self._waiting_for_capture = True
+                self._redraw(context)
+                return {'RUNNING_MODAL'}
 
-        stage = self._stages[self._stage_index]
-        settings.execution_current_stage = STAGE_LABELS[stage]
-        settings.execution_stage_progress = 0.0
-        self._update_overall(settings)
+            if stage == 'COMFYUI':
+                settings.execution_status_text = 'Starting ComfyUI generation...'
+                try:
+                    result = bpy.ops.viewtexforge.comfyui_generate('EXEC_DEFAULT')
+                except Exception as exc:
+                    return self._fail(context, f'ComfyUI failed: {exc}')
+                if 'RUNNING_MODAL' not in result:
+                    return self._fail(context, settings.execution_status_text or 'ComfyUI generation could not be started.')
+                self._waiting_for_comfy = True
+                self._redraw(context)
+                return {'RUNNING_MODAL'}
 
-        if stage == 'CAPTURE':
-            settings.execution_status_text = 'Capturing source images...'
-            settings.execution_stage_progress = 5.0
-            self._redraw(context)
-            result = bpy.ops.viewtexforge.capture('EXEC_DEFAULT')
-            if 'FINISHED' not in result:
-                return self._fail(context, 'Capture failed. See Blender status/console for details.')
-            settings.execution_stage_progress = 100.0
-            settings.execution_status_text = 'Capture completed'
-            self._stage_index += 1
-            self._update_overall(settings)
-            self._redraw(context)
-            return {'RUNNING_MODAL'}
+            if stage == 'MERGE':
+                settings.execution_status_text = 'Starting Texture Merge...'
+                try:
+                    result = bpy.ops.viewtexforge.texture_merge('EXEC_DEFAULT')
+                except Exception as exc:
+                    return self._fail(context, f'Texture Merge failed: {exc}')
+                if 'RUNNING_MODAL' not in result:
+                    return self._fail(context, settings.execution_status_text or 'Texture Merge could not be started.')
+                self._waiting_for_merge = True
+                self._redraw(context)
+                return {'RUNNING_MODAL'}
 
-        if stage == 'COMFYUI':
-            settings.execution_status_text = 'Starting ComfyUI generation...'
-            result = bpy.ops.viewtexforge.comfyui_generate('EXEC_DEFAULT')
-            if 'RUNNING_MODAL' not in result:
-                return self._fail(context, 'ComfyUI generation could not be started.')
-            self._waiting_for_comfy = True
-            self._redraw(context)
-            return {'RUNNING_MODAL'}
-
-        if stage == 'MERGE':
-            settings.execution_status_text = 'Running Texture Merge...'
-            settings.execution_stage_progress = 5.0
-            self._update_overall(settings)
-            self._redraw(context)
-            try:
-                outputs, _manifest, output_dir, apply_report = run_texture_merge(context.scene)
-            except Exception as exc:
-                print(f'[ViewTexForge][Execution][Texture Merge][ERROR] {exc}')
-                return self._fail(context, f'Texture Merge failed: {exc}')
-            settings.execution_stage_progress = 100.0
-            if apply_report.get('mode') == 'NONE':
-                settings.execution_status_text = f'Texture Merge completed ({len(outputs)} texture(s))'
-            else:
-                settings.execution_status_text = (
-                    f"Texture Merge completed ({len(outputs)} texture(s)); "
-                    f"applied to {apply_report.get('objects', 0)} object(s) / "
-                    f"{apply_report.get('materials_applied', 0)} material(s)"
-                )
-            self._stage_index += 1
-            self._update_overall(settings)
-            print(f'[ViewTexForge][Execution] Texture Merge output: {output_dir}')
-            self._redraw(context)
-            return {'RUNNING_MODAL'}
-
-        return self._fail(context, f'Unknown stage: {stage}')
+            return self._fail(context, f'Unknown stage: {stage}')
+        except Exception as exc:
+            return self._fail(context, f'Pipeline failed: {exc}')
 
     def _update_overall(self, settings):
         count = max(1, len(self._stages or ()))
@@ -164,16 +189,27 @@ class VIEWTEXFORGE_OT_run_execution(bpy.types.Operator):
 
     def _finish(self, context):
         settings = context.scene.viewtexforge_settings
-        settings.execution_is_running = False
+        reset_runtime_locks(settings, include_execution=True)
+        self._waiting_for_capture = False
+        self._waiting_for_comfy = False
+        self._waiting_for_merge = False
         if self._timer is not None:
-            context.window_manager.event_timer_remove(self._timer)
+            try:
+                context.window_manager.event_timer_remove(self._timer)
+            except Exception:
+                pass
             self._timer = None
         self._redraw(context)
 
     @staticmethod
     def _redraw(context):
-        if context.area:
-            context.area.tag_redraw()
+        screen = getattr(context, 'screen', None)
+        if screen:
+            for area in screen.areas:
+                try:
+                    area.tag_redraw()
+                except Exception:
+                    pass
 
     def cancel(self, context):
         self._finish(context)

@@ -248,3 +248,35 @@ Version 0.5.12
 - Adjusted the 9-camera Front-Right and Front-Left views from pitch 0 degrees to pitch +15 degrees.
 - Other 9-camera angles remain unchanged, including Lower-Front at pitch -30 degrees.
 - Projected 2D BBox orthographic fitting remains active.
+
+Version 0.5.14
+- Added Output Directory validation before Capture, ComfyUI, Texture Merge, and Show Explorer use. Invalid, inaccessible, or unresolved Blender-relative paths now stop safely with a warning instead of falling through to an unintended directory.
+- Capture now runs incrementally as a modal operation and reports per-view/per-pass progress in the shared Status section.
+- Texture Merge now runs incrementally as a modal operation and reports preparation, geometry, per-view merge, padding, saving, and material-apply progress in the shared Status section.
+- Execution mode now waits for modal Capture and Texture Merge stages and propagates their live stage progress into Overall Progress.
+- Runtime locks are released on detected failures/cancellation so Capture, ComfyUI, Texture Merge, and Execution controls can be used again without restarting Blender.
+- Added additional ComfyUI exception cleanup so unexpected modal/worker startup failures release the UI lock.
+
+v0.5.15 release GUI/defaults update
+-----------------------------------
+- Capture Settings, ComfyUI Settings, and Texture Merge Settings remain visible; secondary options are collapsed.
+- Default Clay Rendering is Lit Clay Render with Use Auto Lighting.
+- Camera mode is fixed to Auto Cameras for the release workflow.
+- Camera Layout exposes only 2 x 2 (4 Cameras) and 3 x 3 (9 Cameras); 4 Cameras is the default.
+- Albedo Source is shown only while Albedo Mode is enabled.
+- Texture Merge visibility is fixed to Strict Ray.
+- Texture Merge Advanced contains Depth Tolerance, RGB Surface Check, Small Hole Fill, and detailed merge tuning.
+- Defaults: Depth Tolerance = Auto, RGB Surface Check = Local Surface, Small Hole Fill = Constrained.
+
+
+v0.5.16 release GUI polish
+--------------------------
+- Render Target is displayed on one horizontal row with expanded radio-style choices.
+- Reference Image uses a compact two-line layout: label on the first line, file path and a small image thumbnail on the second line.
+- Workflow selection is hidden from the ComfyUI panel; the bundled workflow remains fixed as the execution workflow.
+
+
+v0.5.17 release GUI spacing polish
+-----------------------------------
+- Render Target radio choices now use the same effective control width as the standard option rows below them.
+- Reference Image preview is enlarged for easier visual confirmation while remaining inline with the file path row.

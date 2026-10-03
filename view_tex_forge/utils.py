@@ -1,4 +1,5 @@
 import os
+import tempfile
 import bpy
 from mathutils import Vector
 from .constants import VALID_OBJECT_TYPES, AUTO_CAMERA_COLLECTION_NAME
@@ -16,6 +17,62 @@ def force_view_layer_update(context=None):
 
 def ensure_dir(path):
     os.makedirs(path, exist_ok=True)
+
+
+def validate_output_directory(path_value, create=True):
+    """Resolve and verify a user-selected writable output directory.
+
+    Blender-relative // paths are only accepted when the current .blend has
+    been saved, so an unset/default path can never silently resolve against
+    Blender's process/add-on directory.
+    """
+    raw = (path_value or "").strip()
+    generic_error = (
+        "Output Directory is not correctly specified or cannot be accessed. "
+        "Please select a valid writable folder."
+    )
+    if not raw:
+        return False, None, generic_error
+    if raw.startswith("//") and not bpy.data.is_saved:
+        return False, None, generic_error
+
+    try:
+        resolved = os.path.abspath(bpy.path.abspath(raw))
+    except Exception:
+        return False, None, generic_error
+
+    if not resolved or not os.path.isabs(resolved):
+        return False, None, generic_error
+
+    try:
+        if os.path.exists(resolved) and not os.path.isdir(resolved):
+            return False, resolved, generic_error
+        if create:
+            os.makedirs(resolved, exist_ok=True)
+        elif not os.path.isdir(resolved):
+            return False, resolved, generic_error
+
+        # os.access alone is not reliable enough on Windows. A tiny temporary
+        # file verifies that the directory is actually writable and is removed
+        # immediately by the context manager.
+        with tempfile.NamedTemporaryFile(prefix=".viewtexforge_write_test_", dir=resolved, delete=True):
+            pass
+    except Exception:
+        return False, resolved, generic_error
+
+    return True, resolved, ""
+
+
+def reset_runtime_locks(settings, include_execution=False):
+    """Release transient UI locks after success, failure, or cancellation."""
+    if hasattr(settings, "capture_is_running"):
+        settings.capture_is_running = False
+    if hasattr(settings, "texture_merge_is_running"):
+        settings.texture_merge_is_running = False
+    if hasattr(settings, "comfyui_is_running"):
+        settings.comfyui_is_running = False
+    if include_execution and hasattr(settings, "execution_is_running"):
+        settings.execution_is_running = False
 
 
 class DummyContext:

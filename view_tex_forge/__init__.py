@@ -1,7 +1,7 @@
 bl_info = {
     "name": "ViewTexForge",
     "author": "OpenAI",
-    "version": (0, 5, 13),
+    "version": (0, 5, 17),
     "blender": (5, 1, 0),
     "location": "View3D > Sidebar > ViewTexForge",
     "description": "Camera-based capture tools for AI texture generation workflows",
@@ -17,6 +17,7 @@ from .execution_operator import VIEWTEXFORGE_OT_run_execution
 from .comfyui_client import register_connection_monitor, unregister_connection_monitor
 from .ui import VIEWTEXFORGE_PT_panel
 from .preview import remove_preview_handler
+from .reference_preview import clear_reference_image_preview
 
 classes = (
     VIEWTEXFORGE_PG_Settings,
@@ -39,6 +40,7 @@ def register():
 def unregister():
     unregister_connection_monitor()
     remove_preview_handler()
+    clear_reference_image_preview()
     if hasattr(bpy.types.Scene, "viewtexforge_settings"):
         del bpy.types.Scene.viewtexforge_settings
     for cls in reversed(classes):

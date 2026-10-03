@@ -5,7 +5,11 @@ from pathlib import Path
 import bpy
 
 from .standalone_texture_merge.output_io import object_directory
-from .standalone_texture_merge.run_texture_merge import run as run_texture_merge_core
+from .standalone_texture_merge.run_texture_merge import (
+    run as run_texture_merge_core,
+    run_iter as run_texture_merge_core_iter,
+)
+from .utils import validate_output_directory
 from .standalone_texture_merge.settings import Settings as TextureMergeSettings
 
 
@@ -129,7 +133,8 @@ def settings_from_scene(scene):
         view_priority={},
         padding_radius=int(s.texture_merge_padding_radius),
         png_bit_depth=int(s.texture_merge_png_bit_depth),
-        visibility_mode=s.texture_merge_visibility_mode,
+        # Release workflow contract: Strict Ray visibility is fixed.
+        visibility_mode='STRICT',
         surface_sample_mode=s.texture_merge_surface_sample_mode,
         sample_guard_px=int(s.texture_merge_sample_guard_px),
         fill_mode=s.texture_merge_fill_mode,
@@ -395,12 +400,13 @@ def apply_merged_textures_to_materials(scene, merge_manifest_path, merge_output_
     }
 
 
-def run_texture_merge(scene):
+def run_texture_merge_iter(scene):
     s = scene.viewtexforge_settings
-    output_dir = bpy.path.abspath(s.output_dir)
-    if not os.path.isdir(output_dir):
-        raise RuntimeError(f"Output Directory does not exist: {output_dir}")
+    valid, output_dir, message = validate_output_directory(s.output_dir, create=False)
+    if not valid:
+        raise RuntimeError(message)
 
+    yield {'progress': 2.0, 'status': 'Preparing Texture Merge manifest...'}
     manifest_path = build_texture_merge_manifest(output_dir)
     settings = settings_from_scene(scene)
     generated_dir = os.path.join(output_dir, 'generated')
@@ -412,14 +418,42 @@ def run_texture_merge(scene):
 
     print(f"[ViewTexForge][Texture Merge] Manifest: {manifest_path}")
     print(f"[ViewTexForge][Texture Merge] Output: {merge_output_dir}")
-    outputs = run_texture_merge_core(
+
+    runner = run_texture_merge_core_iter(
         manifest_path=manifest_path,
         output_root=merge_output_dir,
         settings=settings,
         scene=scene,
     )
+    while True:
+        try:
+            event = next(runner)
+            core_progress = max(0.0, min(1.0, float(event.get('progress', 0.0))))
+            yield {
+                'progress': 5.0 + 85.0 * core_progress,
+                'status': event.get('status', 'Running Texture Merge...'),
+            }
+        except StopIteration as stop:
+            outputs = stop.value
+            break
+
+    yield {'progress': 94.0, 'status': 'Applying merged textures to materials...'}
     apply_report = apply_merged_textures_to_materials(scene, manifest_path, merge_output_dir)
+    yield {'progress': 99.0, 'status': 'Finalizing Texture Merge...'}
     return outputs, manifest_path, merge_output_dir, apply_report
+
+
+def _consume_generator(generator):
+    while True:
+        try:
+            next(generator)
+        except StopIteration as stop:
+            return stop.value
+
+
+def run_texture_merge(scene):
+    """Synchronous compatibility wrapper used by non-modal callers/tests."""
+    return _consume_generator(run_texture_merge_iter(scene))
 
 
 class VIEWTEXFORGE_OT_texture_merge(bpy.types.Operator):
@@ -427,36 +461,122 @@ class VIEWTEXFORGE_OT_texture_merge(bpy.types.Operator):
     bl_label = 'Run Texture Merge'
     bl_description = 'Project generated camera colors and merge them into UV base-color textures'
 
+    _timer = None
+    _runner = None
+    _direct_status = False
+
     def execute(self, context):
         settings = context.scene.viewtexforge_settings
-        if settings.execution_is_running:
-            self.report({'WARNING'}, 'A ViewTexForge pipeline is already running.')
+        if settings.texture_merge_is_running or settings.capture_is_running or settings.comfyui_is_running:
+            self.report({'WARNING'}, 'A ViewTexForge operation is already running.')
             return {'CANCELLED'}
 
-        settings.execution_current_stage = 'Texture Merge'
-        settings.execution_stage_progress = 5.0
-        settings.execution_overall_progress = 5.0
-        settings.execution_status_text = 'Preparing Texture Merge...'
-        try:
-            outputs, _manifest, output_dir, apply_report = run_texture_merge(context.scene)
-        except Exception as exc:
+        valid, _output_dir, message = validate_output_directory(settings.output_dir, create=False)
+        if not valid:
+            settings.texture_merge_last_result = 'FAILED'
+            settings.execution_current_stage = 'Failed'
             settings.execution_stage_progress = 0.0
-            settings.execution_status_text = f'Failed: {exc}'
-            print(f"[ViewTexForge][Texture Merge][ERROR] {exc}")
-            self.report({'ERROR'}, str(exc))
+            settings.execution_status_text = message
+            self.report({'WARNING'}, message)
             return {'CANCELLED'}
 
+        self._direct_status = not settings.execution_is_running
+        settings.texture_merge_is_running = True
+        settings.texture_merge_last_result = 'RUNNING'
+        settings.execution_current_stage = 'Texture Merge'
+        settings.execution_stage_progress = 0.0
+        if self._direct_status:
+            settings.execution_overall_progress = 0.0
+        settings.execution_status_text = 'Preparing Texture Merge...'
+
+        try:
+            self._runner = run_texture_merge_iter(context.scene)
+            self._timer = context.window_manager.event_timer_add(0.05, window=context.window)
+            context.window_manager.modal_handler_add(self)
+            self._redraw_all(context)
+            return {'RUNNING_MODAL'}
+        except Exception as exc:
+            return self._fail(context, exc)
+
+    def modal(self, context, event):
+        if event.type != 'TIMER':
+            return {'PASS_THROUGH'}
+
+        settings = context.scene.viewtexforge_settings
+        try:
+            progress = next(self._runner)
+            percent = max(0.0, min(100.0, float(progress.get('progress', 0.0))))
+            settings.execution_current_stage = 'Texture Merge'
+            settings.execution_stage_progress = percent
+            if self._direct_status:
+                settings.execution_overall_progress = percent
+            settings.execution_status_text = progress.get('status', 'Running Texture Merge...')
+            self._redraw_all(context)
+            return {'RUNNING_MODAL'}
+        except StopIteration as stop:
+            return self._complete(context, stop.value)
+        except Exception as exc:
+            return self._fail(context, exc)
+
+    def _complete(self, context, result):
+        settings = context.scene.viewtexforge_settings
+        outputs, _manifest, output_dir, apply_report = result
         apply_mode = apply_report.get('mode', 'NONE')
         if apply_mode == 'NONE':
-            settings.execution_status_text = f'Texture Merge completed ({len(outputs)} texture(s))'
+            message = f'Texture Merge completed ({len(outputs)} texture(s))'
         else:
-            settings.execution_status_text = (
+            message = (
                 f"Texture Merge completed ({len(outputs)} texture(s)); "
                 f"applied to {apply_report.get('objects', 0)} object(s) / "
                 f"{apply_report.get('materials_applied', 0)} material(s)"
             )
-        settings.execution_current_stage = 'Completed'
+        settings.texture_merge_last_result = 'FINISHED'
         settings.execution_stage_progress = 100.0
-        settings.execution_overall_progress = 100.0
+        settings.execution_status_text = message
+        if self._direct_status:
+            settings.execution_current_stage = 'Completed'
+            settings.execution_overall_progress = 100.0
+        self._cleanup(context)
         self.report({'INFO'}, f'Texture Merge complete: {output_dir}')
         return {'FINISHED'}
+
+    def _fail(self, context, exc):
+        settings = context.scene.viewtexforge_settings
+        message = str(exc)
+        settings.texture_merge_last_result = 'FAILED'
+        settings.execution_current_stage = 'Failed'
+        settings.execution_stage_progress = 0.0
+        settings.execution_status_text = f'Failed: {message}'
+        print(f"[ViewTexForge][Texture Merge][ERROR] {message}")
+        self._cleanup(context)
+        self.report({'ERROR'}, message)
+        return {'CANCELLED'}
+
+    def _cleanup(self, context):
+        settings = context.scene.viewtexforge_settings
+        settings.texture_merge_is_running = False
+        if self._timer is not None:
+            try:
+                context.window_manager.event_timer_remove(self._timer)
+            except Exception:
+                pass
+            self._timer = None
+        self._runner = None
+        self._redraw_all(context)
+
+    @staticmethod
+    def _redraw_all(context):
+        screen = getattr(context, 'screen', None)
+        if screen:
+            for area in screen.areas:
+                try:
+                    area.tag_redraw()
+                except Exception:
+                    pass
+
+    def cancel(self, context):
+        settings = context.scene.viewtexforge_settings
+        settings.texture_merge_last_result = 'FAILED'
+        settings.execution_current_stage = 'Failed'
+        settings.execution_status_text = 'Texture Merge cancelled'
+        self._cleanup(context)
