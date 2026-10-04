@@ -280,3 +280,12 @@ v0.5.17 release GUI spacing polish
 -----------------------------------
 - Render Target radio choices now use the same effective control width as the standard option rows below them.
 - Reference Image preview is enlarged for easier visual confirmation while remaining inline with the file path row.
+
+
+v0.5.18 automatic light power
+-----------------------------
+- Added Auto / Manual Power Mode to Auto Lighting.
+- Auto is the default and derives Area Light power from the target bounds using the current auto-light rig scale.
+- Automatic power uses the largest target bounding-box dimension with a squared size relationship and a safety clamp.
+- Manual mode preserves the existing Light Power control; the Light Power field is shown only while Manual is selected.
+- Existing light placement, Normalize, exposure, shadow, color, and capture behavior are otherwise unchanged.

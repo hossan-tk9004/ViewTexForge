@@ -14,6 +14,19 @@ AUTO_LIGHT_OFFSET_RATIO = 0.05
 AUTO_LIGHT_MIN_OFFSET = 0.05
 AUTO_LIGHT_SIZE_PAD_RATIO = 0.0
 
+# Auto light power is scaled by the square of the target's largest world-space
+# bounding-box dimension. This matches the current auto-light rig, where both
+# light distance and light size scale with the target bounds.
+AUTO_LIGHT_POWER_COEFFICIENT = 0.013
+AUTO_LIGHT_POWER_MIN = 1.0
+AUTO_LIGHT_POWER_MAX = 5000.0
+
+
+def calculate_auto_light_power(cube_size):
+    size = max(float(cube_size), 0.0)
+    power = AUTO_LIGHT_POWER_COEFFICIENT * size * size
+    return max(AUTO_LIGHT_POWER_MIN, min(power, AUTO_LIGHT_POWER_MAX))
+
 
 def ensure_light_collection(scene):
     coll = bpy.data.collections.get(AUTO_LIGHT_COLLECTION_NAME)
@@ -144,6 +157,11 @@ class AutoLightingScope:
         offset = max(cube_size * AUTO_LIGHT_OFFSET_RATIO, AUTO_LIGHT_MIN_OFFSET)
         light_size = max(cube_size * (1.0 + AUTO_LIGHT_SIZE_PAD_RATIO), 0.01)
 
+        if getattr(self.settings, 'light_power_mode', 'AUTO') == 'MANUAL':
+            light_power = float(self.settings.light_power)
+        else:
+            light_power = calculate_auto_light_power(cube_size)
+
         coll = ensure_light_collection(self.scene)
 
         entries = [
@@ -158,7 +176,7 @@ class AutoLightingScope:
             light_data = bpy.data.lights.new(f"ViewTexForgeLight_{label}", type='AREA')
             light_data.shape = 'SQUARE'
             light_data.size = light_size
-            light_data.energy = float(self.settings.light_power)
+            light_data.energy = light_power
             light_data.color = tuple(self.settings.light_color)
             if hasattr(light_data, 'normalize'):
                 light_data.normalize = bool(self.settings.light_normalize)

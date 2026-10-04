@@ -83,6 +83,16 @@ class VIEWTEXFORGE_PG_Settings(bpy.types.PropertyGroup):
         default=False,
     )
 
+    light_power_mode: EnumProperty(
+        name="Power Mode",
+        description="Choose automatic light power based on target size or a manual power value",
+        items=[
+            ('AUTO', 'Auto', 'Automatically calculate light power from the target bounds'),
+            ('MANUAL', 'Manual', 'Use the Light Power value below'),
+        ],
+        default='AUTO',
+    )
+
     light_power: FloatProperty(
         name="Light Power",
         description="Base power used for each auto-generated area light",

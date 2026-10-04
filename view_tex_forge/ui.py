@@ -33,7 +33,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
             or settings.texture_merge_is_running
         )
 
-        layout.label(text="Version 0.5.17")
+        layout.label(text="Version 0.5.18")
         layout.separator()
 
         save = layout.box()
@@ -83,7 +83,9 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
                         sub = output_box.box()
                         sub.label(text='Auto Light Placement: Cube Bounds')
                         sub.label(text='Auto Light Shape: Square')
-                        sub.prop(settings, 'light_power')
+                        sub.prop(settings, 'light_power_mode', text='Power Mode')
+                        if settings.light_power_mode == 'MANUAL':
+                            sub.prop(settings, 'light_power')
                         sub.prop(settings, 'light_normalize')
                         sub.prop(settings, 'light_use_shadow')
                         sub.prop(settings, 'light_exposure_front')
