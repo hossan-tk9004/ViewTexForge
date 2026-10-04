@@ -33,7 +33,7 @@ class VIEWTEXFORGE_PT_panel(bpy.types.Panel):
             or settings.texture_merge_is_running
         )
 
-        layout.label(text="Version 0.5.18")
+        layout.label(text="Version 1.0.0")
         layout.separator()
 
         save = layout.box()

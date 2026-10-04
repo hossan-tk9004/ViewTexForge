@@ -29,7 +29,7 @@ Main features:
 
 The following versions document development leading up to the v1.0 public release.
 
-## v0.5.18
+## v1.0.0
 
 - Added Auto / Manual Power Mode.
 - Made Auto the default and automatically calculate Area Light Power from target bounds and auto-light rig scale.

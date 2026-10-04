@@ -29,7 +29,7 @@ GitHub 公開向け初回リリース。
 
 以下は v1.0 公開までの開発版履歴です。
 
-## v0.5.18
+## v1.0.0
 
 - Auto / Manual Power Mode を追加。
 - Auto を既定値とし、対象 bounds と auto-light rig scale から Area Light Power を自動計算。
