@@ -1,0 +1,16 @@
+{
+  "resolution": [2048, 2048],
+  "debug_output": false,
+  "blend_space": "SRGB_ENCODED",
+  "facing_exponent": 4.0,
+  "face_gate_gain": 12.0,
+  "depth_tolerance_mode": "AUTO",
+  "depth_sigma_scale_px": 0.65,
+  "depth_cutoff_scale_px": 1.7,
+  "depth_sigma_m": 0.0012,
+  "depth_cutoff_m": 0.003,
+  "min_weight_sum": 0.00001,
+  "view_priority": {},
+  "padding_radius": 16,
+  "png_bit_depth": 8
+}
